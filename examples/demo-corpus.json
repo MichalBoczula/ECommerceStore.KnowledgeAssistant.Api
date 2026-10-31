@@ -1,0 +1,407 @@
+{
+  "schemaVersion": 1,
+  "snapshotId": "demo-v1",
+  "version": "demo",
+  "manifestSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "isDemo": true,
+  "documents": [
+    {
+      "id": "d-5ac5d4893ea5354c27bce36853475d946e5adba8b7e7607018c3cc9a8f6a0d05",
+      "source": {
+        "id": "s-5ac5d4893ea5354c27bce36853475d946e5adba8b7e7607018c3cc9a8f6a0d05",
+        "service": "products",
+        "snapshotId": "demo-v1",
+        "path": "allure-results/demo-result.json",
+        "commitSha": "0000000000000000000000000000000000000000",
+        "bundleSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "title": "Reject invalid mobile phone price",
+        "url": null
+      },
+      "kind": "execution",
+      "title": "Reject invalid mobile phone price",
+      "content": "{\"name\": \"Reject invalid mobile phone price\", \"status\": \"passed\", \"steps\": [{\"name\": \"Then validation fails\", \"status\": \"passed\"}]}",
+      "payload": {
+        "uuid": "demo-result",
+        "name": "Reject invalid mobile phone price",
+        "status": "passed",
+        "steps": [
+          {
+            "name": "Then validation fails",
+            "status": "passed"
+          }
+        ]
+      },
+      "operationId": null,
+      "tags": []
+    },
+    {
+      "id": "d-85c73114d4b3c341c2006cffe11fe935c84a8a0076bee07f4d6f5dcd97275e75",
+      "source": {
+        "id": "s-85c73114d4b3c341c2006cffe11fe935c84a8a0076bee07f4d6f5dcd97275e75",
+        "service": "products",
+        "snapshotId": "demo-v1",
+        "path": "bdd/mobile.feature#case-b6577d8c9a07ff92d241",
+        "commitSha": "0000000000000000000000000000000000000000",
+        "bundleSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "title": "Reject invalid mobile phone price",
+        "url": null
+      },
+      "kind": "scenario",
+      "title": "Reject invalid mobile phone price",
+      "content": "Reject invalid mobile phone price\n@DEMO-MOBILE-001\na mobile phone with price 0\nI submit the create request\nvalidation fails",
+      "payload": {
+        "name": "Reject invalid mobile phone price",
+        "steps": [
+          {
+            "astNodeIds": [
+              "0",
+              "4"
+            ],
+            "id": "0",
+            "type": "Context",
+            "text": "a mobile phone with price 0"
+          },
+          {
+            "astNodeIds": [
+              "1",
+              "4"
+            ],
+            "id": "1",
+            "type": "Action",
+            "text": "I submit the create request"
+          },
+          {
+            "astNodeIds": [
+              "2",
+              "4"
+            ],
+            "id": "2",
+            "type": "Outcome",
+            "text": "validation fails"
+          }
+        ],
+        "tags": [
+          "@DEMO-MOBILE-001"
+        ],
+        "exampleOrdinal": 0,
+        "featurePath": "bdd/mobile.feature"
+      },
+      "operationId": null,
+      "tags": [
+        "@DEMO-MOBILE-001"
+      ]
+    },
+    {
+      "id": "d-b7bf30e8dce758da75089bfe6b1d0d1a542195da5d66b831738a9a905df30f12",
+      "source": {
+        "id": "s-b7bf30e8dce758da75089bfe6b1d0d1a542195da5d66b831738a9a905df30f12",
+        "service": "products",
+        "snapshotId": "demo-v1",
+        "path": "bdd/mobile.feature#case-29133793841065dbcdb1",
+        "commitSha": "0000000000000000000000000000000000000000",
+        "bundleSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "title": "Reject invalid mobile phone price",
+        "url": null
+      },
+      "kind": "scenario",
+      "title": "Reject invalid mobile phone price",
+      "content": "Reject invalid mobile phone price\n@DEMO-MOBILE-001\na mobile phone with price -1\nI submit the create request\nvalidation fails",
+      "payload": {
+        "name": "Reject invalid mobile phone price",
+        "steps": [
+          {
+            "astNodeIds": [
+              "0",
+              "5"
+            ],
+            "id": "4",
+            "type": "Context",
+            "text": "a mobile phone with price -1"
+          },
+          {
+            "astNodeIds": [
+              "1",
+              "5"
+            ],
+            "id": "5",
+            "type": "Action",
+            "text": "I submit the create request"
+          },
+          {
+            "astNodeIds": [
+              "2",
+              "5"
+            ],
+            "id": "6",
+            "type": "Outcome",
+            "text": "validation fails"
+          }
+        ],
+        "tags": [
+          "@DEMO-MOBILE-001"
+        ],
+        "exampleOrdinal": 1,
+        "featurePath": "bdd/mobile.feature"
+      },
+      "operationId": null,
+      "tags": [
+        "@DEMO-MOBILE-001"
+      ]
+    },
+    {
+      "id": "d-e8973075a90893674eccf089d8f49b15174bbade15f1e20f34ef18beecea36fa",
+      "source": {
+        "id": "s-e8973075a90893674eccf089d8f49b15174bbade15f1e20f34ef18beecea36fa",
+        "service": "products",
+        "snapshotId": "demo-v1",
+        "path": "sources/openapi.json#/paths/~1mobile-phones/post",
+        "commitSha": "0000000000000000000000000000000000000000",
+        "bundleSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "title": "Create a mobile phone",
+        "url": null
+      },
+      "kind": "api_contract",
+      "title": "Create a mobile phone",
+      "content": "POST /mobile-phones\ncreateMobilePhone\n{\"operationId\": \"createMobilePhone\", \"summary\": \"Create a mobile phone\", \"requestBody\": {\"content\": {\"application/json\": {\"schema\": {\"type\": \"object\", \"required\": [\"name\", \"price\", \"specifications\"], \"properties\": {\"name\": {\"type\": \"string\", \"minLength\": 1}, \"price\": {\"type\": \"number\", \"exclusiveMinimum\": 0}, \"specifications\": {\"type\": \"object\", \"required\": [\"storageGb\", \"color\"], \"properties\": {\"storageGb\": {\"type\": \"integer\", \"minimum\": 1}, \"color\": {\"type\": \"string\"}}}, \"photos\": {\"type\": \"array\", \"items\": {\"type\": \"object\", \"properties\": {\"url\": {\"type\": \"string\"}, \"main\": {\"type\": \"boolean\"}}}}}}, \"example\": {\"name\": \"Example phone\", \"price\": 1299.99, \"specifications\": {\"storageGb\": 256, \"color\": \"Black\"}, \"photos\": [{\"url\": \"https://example.com/phone.webp\", \"main\": true}]}}}}, \"responses\": {\"201\": {\"description\": \"Created\"}}}",
+      "payload": {
+        "method": "POST",
+        "path": "/mobile-phones",
+        "operationId": "createMobilePhone",
+        "openapiVersion": "3.1.0",
+        "mediaType": "application/json",
+        "requestSchema": {
+          "type": "object",
+          "required": [
+            "name",
+            "price",
+            "specifications"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "price": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "specifications": {
+              "type": "object",
+              "required": [
+                "storageGb",
+                "color"
+              ],
+              "properties": {
+                "storageGb": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "color": {
+                  "type": "string"
+                }
+              }
+            },
+            "photos": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "main": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "exampleRequest": {
+          "name": "Example phone",
+          "price": 1299.99,
+          "specifications": {
+            "storageGb": 256,
+            "color": "Black"
+          },
+          "photos": [
+            {
+              "url": "https://example.com/phone.webp",
+              "main": true
+            }
+          ]
+        },
+        "operation": {
+          "operationId": "createMobilePhone",
+          "summary": "Create a mobile phone",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "price",
+                    "specifications"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "price": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "specifications": {
+                      "type": "object",
+                      "required": [
+                        "storageGb",
+                        "color"
+                      ],
+                      "properties": {
+                        "storageGb": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "color": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "photos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "url": {
+                            "type": "string"
+                          },
+                          "main": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "name": "Example phone",
+                  "price": 1299.99,
+                  "specifications": {
+                    "storageGb": 256,
+                    "color": "Black"
+                  },
+                  "photos": [
+                    {
+                      "url": "https://example.com/phone.webp",
+                      "main": true
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Created"
+            }
+          }
+        },
+        "referenceSchemas": {}
+      },
+      "operationId": "createMobilePhone",
+      "tags": []
+    },
+    {
+      "id": "d-e9f2c94e7695c30bf692157ef6b35e616351007ca928bb5dd6f68589c090389d",
+      "source": {
+        "id": "s-e9f2c94e7695c30bf692157ef6b35e616351007ca928bb5dd6f68589c090389d",
+        "service": "products",
+        "snapshotId": "demo-v1",
+        "path": "sources/validation-policies.json#entry-0",
+        "commitSha": "0000000000000000000000000000000000000000",
+        "bundleSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "title": "Mobile phone validation",
+        "url": null
+      },
+      "kind": "validation",
+      "title": "Mobile phone validation",
+      "content": "{\n  \"name\": \"Mobile phone validation\",\n  \"rules\": [\n    {\n      \"field\": \"name\",\n      \"description\": \"Required, nonempty text.\"\n    },\n    {\n      \"field\": \"price\",\n      \"description\": \"A number greater than zero.\"\n    },\n    {\n      \"field\": \"specifications\",\n      \"description\": \"Storage size and color are required.\"\n    }\n  ]\n}",
+      "payload": {
+        "value": {
+          "name": "Mobile phone validation",
+          "rules": [
+            {
+              "field": "name",
+              "description": "Required, nonempty text."
+            },
+            {
+              "field": "price",
+              "description": "A number greater than zero."
+            },
+            {
+              "field": "specifications",
+              "description": "Storage size and color are required."
+            }
+          ]
+        }
+      },
+      "operationId": null,
+      "tags": []
+    },
+    {
+      "id": "d-e4dfa5c3b48e282414f2f75e8cadd9cb051cdd225ac6bf34240e3e68260a0859",
+      "source": {
+        "id": "s-e4dfa5c3b48e282414f2f75e8cadd9cb051cdd225ac6bf34240e3e68260a0859",
+        "service": "products",
+        "snapshotId": "demo-v1",
+        "path": "sources/flows.json#entry-0",
+        "commitSha": "0000000000000000000000000000000000000000",
+        "bundleSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "title": "Create mobile phone",
+        "url": null
+      },
+      "kind": "flow",
+      "title": "Create mobile phone",
+      "content": "{\n  \"name\": \"Create mobile phone\",\n  \"steps\": [\n    \"Validate request\",\n    \"Persist mobile phone\",\n    \"Return created resource\"\n  ]\n}",
+      "payload": {
+        "value": {
+          "name": "Create mobile phone",
+          "steps": [
+            "Validate request",
+            "Persist mobile phone",
+            "Return created resource"
+          ]
+        }
+      },
+      "operationId": null,
+      "tags": []
+    },
+    {
+      "id": "d-0145a850723bb1cdb883abb2394d8135bfca2c82bdee7dd3a703b1ee728ce2e9",
+      "source": {
+        "id": "s-0145a850723bb1cdb883abb2394d8135bfca2c82bdee7dd3a703b1ee728ce2e9",
+        "service": "products",
+        "snapshotId": "demo-v1",
+        "path": "sources/operation-links.json#entry-0",
+        "commitSha": "0000000000000000000000000000000000000000",
+        "bundleSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "title": "operation-links 1",
+        "url": null
+      },
+      "kind": "operation_links",
+      "title": "operation-links 1",
+      "content": "{\n  \"createMobilePhone\": [\n    \"DEMO-MOBILE-001\"\n  ]\n}",
+      "payload": {
+        "value": {
+          "createMobilePhone": [
+            "DEMO-MOBILE-001"
+          ]
+        }
+      },
+      "operationId": null,
+      "tags": []
+    }
+  ]
+}

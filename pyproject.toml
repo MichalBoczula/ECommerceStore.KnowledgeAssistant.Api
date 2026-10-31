@@ -1,0 +1,33 @@
+[project]
+name = "ecommerce-knowledge-assistant"
+version = "0.1.0"
+description = "Versioned LiveDocs retrieval and structured developer answers"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "pydantic-settings>=2.8,<3",
+  "azure-search-documents>=11.6,<12", "azure-identity>=1.21,<2",
+  "azure-storage-blob>=12.25,<13", "openai>=2,<3", "gherkin-official>=32,<40",
+  "jsonschema>=4.23,<5", "openapi-schema-validator>=0.6,<1",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3,<10", "httpx>=0.28,<1", "ruff>=0.11,<1"]
+
+[project.scripts]
+knowledge = "knowledge_assistant.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/knowledge_assistant"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

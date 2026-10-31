@@ -1,0 +1,406 @@
+{
+  "$defs": {
+    "ContractSection": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "api_contract",
+          "title": "Type",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "operationId": {
+          "title": "Operationid",
+          "type": "string"
+        },
+        "mediaType": {
+          "title": "Mediatype",
+          "type": "string"
+        },
+        "requestSchema": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Requestschema",
+          "type": "object"
+        },
+        "exampleRequest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JsonValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exampleOrigin": {
+          "enum": [
+            "openapi",
+            "generated",
+            "unavailable"
+          ],
+          "title": "Exampleorigin",
+          "type": "string"
+        },
+        "exampleSchemaValid": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Exampleschemavalid"
+        },
+        "referenceSchemas": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Referenceschemas",
+          "type": "object"
+        },
+        "sourceIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sourceids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "method",
+        "path",
+        "operationId",
+        "mediaType",
+        "requestSchema",
+        "exampleRequest",
+        "exampleOrigin",
+        "exampleSchemaValid",
+        "referenceSchemas",
+        "sourceIds"
+      ],
+      "title": "ContractSection",
+      "type": "object"
+    },
+    "ExplanationSection": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "explanation",
+          "title": "Type",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "sourceIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sourceids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "content",
+        "sourceIds"
+      ],
+      "title": "ExplanationSection",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Rule": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "title": "Field",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "sourceIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sourceids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "field",
+        "description",
+        "sourceIds"
+      ],
+      "title": "Rule",
+      "type": "object"
+    },
+    "ScenarioSection": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "scenario",
+          "title": "Type",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "executionStatus": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Executionstatus"
+        },
+        "sourceIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sourceids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "content",
+        "sourceIds"
+      ],
+      "title": "ScenarioSection",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "service": {
+          "title": "Service",
+          "type": "string"
+        },
+        "snapshotId": {
+          "title": "Snapshotid",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "commitSha": {
+          "title": "Commitsha",
+          "type": "string"
+        },
+        "bundleSha256": {
+          "title": "Bundlesha256",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "id",
+        "service",
+        "snapshotId",
+        "path",
+        "commitSha",
+        "bundleSha256",
+        "title"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "ValidationSection": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "validation",
+          "title": "Type",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "rules": {
+          "items": {
+            "$ref": "#/$defs/Rule"
+          },
+          "title": "Rules",
+          "type": "array"
+        },
+        "sourceIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sourceids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "type",
+        "title",
+        "rules",
+        "sourceIds"
+      ],
+      "title": "ValidationSection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "default": 1,
+      "title": "Schemaversion",
+      "type": "integer"
+    },
+    "requestId": {
+      "title": "Requestid",
+      "type": "string"
+    },
+    "snapshotId": {
+      "title": "Snapshotid",
+      "type": "string"
+    },
+    "service": {
+      "title": "Service",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "answered",
+        "partial",
+        "not_found"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "answerMode": {
+      "enum": [
+        "evidence",
+        "model"
+      ],
+      "title": "Answermode",
+      "type": "string"
+    },
+    "retrievalMode": {
+      "enum": [
+        "local_keyword",
+        "azure_hybrid"
+      ],
+      "title": "Retrievalmode",
+      "type": "string"
+    },
+    "isDemo": {
+      "title": "Isdemo",
+      "type": "boolean"
+    },
+    "sections": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "api_contract": "#/$defs/ContractSection",
+            "explanation": "#/$defs/ExplanationSection",
+            "scenario": "#/$defs/ScenarioSection",
+            "validation": "#/$defs/ValidationSection"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/ExplanationSection"
+          },
+          {
+            "$ref": "#/$defs/ValidationSection"
+          },
+          {
+            "$ref": "#/$defs/ContractSection"
+          },
+          {
+            "$ref": "#/$defs/ScenarioSection"
+          }
+        ]
+      },
+      "title": "Sections",
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "requestId",
+    "snapshotId",
+    "service",
+    "status",
+    "answerMode",
+    "retrievalMode",
+    "isDemo",
+    "sections",
+    "sources",
+    "limitations"
+  ],
+  "title": "Answer",
+  "type": "object"
+}
