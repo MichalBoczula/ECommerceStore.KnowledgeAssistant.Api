@@ -3,10 +3,11 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from .config import Settings
-from .ingestion import ingest_manifest
-from .models import Answer, Corpus
-from .retrieval import AzureRetriever
+from .application.contracts import Answer
+from .domain.models import Corpus
+from .infrastructure.configuration.settings import Settings
+from .infrastructure.ingestion.livedocs import ingest_manifest
+from .infrastructure.retrieval.azure_retriever import AzureRetriever
 
 
 def main() -> None:
@@ -27,6 +28,11 @@ def main() -> None:
         output = Path("contracts/answer.schema.json")
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(Answer.model_json_schema(by_alias=True), indent=2) + "\n")
+        from .api.app import create_app
+
+        Path("contracts/openapi.json").write_text(
+            json.dumps(create_app().openapi(), indent=2, sort_keys=True) + "\n"
+        )
         return
     if args.command == "ingest":
         corpus = ingest_manifest(

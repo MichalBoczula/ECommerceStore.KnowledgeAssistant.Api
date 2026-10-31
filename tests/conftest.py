@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from knowledge_assistant.ingestion import digest
+from knowledge_assistant.infrastructure.ingestion.livedocs import digest
 
 
 @pytest.fixture

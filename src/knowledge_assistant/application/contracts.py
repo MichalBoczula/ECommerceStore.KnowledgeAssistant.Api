@@ -1,42 +1,9 @@
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
-from pydantic.alias_generators import to_camel
+from pydantic import Field, JsonValue
 
-
-class Model(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
-
-
-class Source(Model):
-    id: str
-    service: str
-    snapshot_id: str
-    path: str
-    commit_sha: str
-    bundle_sha256: str
-    title: str
-    url: str | None = None
-
-
-class Document(Model):
-    id: str
-    source: Source
-    kind: Literal["scenario", "execution", "api_contract", "validation", "flow", "operation_links"]
-    title: str
-    content: str
-    payload: dict[str, JsonValue]
-    operation_id: str | None = None
-    tags: list[str] = Field(default_factory=list)
-
-
-class Corpus(Model):
-    schema_version: Literal[1] = 1
-    snapshot_id: str
-    version: str
-    manifest_sha256: str
-    is_demo: bool = False
-    documents: list[Document]
+from knowledge_assistant.domain.common.model import Model
+from knowledge_assistant.domain.models import Source
 
 
 class Query(Model):
@@ -108,19 +75,23 @@ class Answer(Model):
     limitations: list[str]
 
 
-class PlanSection(Model):
-    """A fixed model schema. Arbitrary API schemas are hydrated by the server."""
-
-    type: Literal["explanation", "validation", "api_contract", "scenario"]
-    title: str
-    text: str
-    rules: list[Rule]
-    document_id: str | None
-    generated_example_json: str | None
-    source_ids: list[str]
+class Snapshot(Model):
+    id: str
+    version: str
+    is_demo: bool
+    services: list[str]
 
 
-class AnswerPlan(Model):
-    status: Literal["answered", "partial", "not_found"]
-    sections: list[PlanSection]
-    limitations: list[str]
+class Catalog(Model):
+    schema_version: Literal[1] = 1
+    snapshots: list[Snapshot]
+    answer_mode: Literal["evidence", "model"]
+    retrieval_mode: Literal["local_keyword", "azure_hybrid"]
+
+
+class Health(Model):
+    status: str
+
+
+class Readiness(Health):
+    snapshot_id: str

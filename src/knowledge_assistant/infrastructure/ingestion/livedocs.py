@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from gherkin.parser import Parser
 from gherkin.pickles.compiler import Compiler
 
-from .models import Corpus, Document, Source
+from knowledge_assistant.domain.models import Corpus, Document, Source
 
 MAX_ARCHIVE = 100 * 1024 * 1024
 MAX_EXPANDED = 500 * 1024 * 1024

@@ -2,7 +2,11 @@ import json
 
 import pytest
 
-from knowledge_assistant.ingestion import documents_from_bundle, ingest_manifest, load_bundle
+from knowledge_assistant.infrastructure.ingestion.livedocs import (
+    documents_from_bundle,
+    ingest_manifest,
+    load_bundle,
+)
 
 
 def test_outline_rows_remain_separate_with_expanded_values(bundle_factory):

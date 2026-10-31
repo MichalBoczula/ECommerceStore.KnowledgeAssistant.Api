@@ -3,8 +3,8 @@
 import json
 from pathlib import Path
 
-from knowledge_assistant.ingestion import documents_from_bundle
-from knowledge_assistant.models import Corpus
+from knowledge_assistant.domain.models import Corpus
+from knowledge_assistant.infrastructure.ingestion.livedocs import documents_from_bundle
 
 schema = {
     "type": "object",

@@ -86,15 +86,47 @@ OpenAPI artifact. Documented/generated examples are schema checked; a failing ge
 example is omitted. Schema validation does not prove all business rules or API execution.
 Recursive schemas retain references plus `referenceSchemas` for validation.
 
+## Layers
+
+The package follows the boundaries used by `ECommerceStoreUsers`, adapted to Python:
+
+| Folder | Responsibility |
+| --- | --- |
+| `api/` | Thin endpoints, authentication, Problem Details, OpenAPI and composition root. |
+| `application/` | Knowledge service, retrieval/planning ports, DTOs, evidence planning and answer assembly. |
+| `domain/` | Source/document/corpus models, text rules and evidence verification failure. |
+| `infrastructure/` | LiveDocs ZIP/blob ingestion, local/Azure retrievers, model client and settings. |
+
+Application and Domain never import FastAPI, Azure or OpenAI SDKs. Adapters implement
+application ports; `api/app.py` supplies them to `KnowledgeService`. The CLI composes
+indexing/ingestion separately. `main.py` remains the ASGI entry point. Tests are
+organized by layer, with an import boundary check and HTTP contract tests.
+See [the architecture decision](docs/adr/0001-layered-knowledge-service.md).
+
+## Errors
+
+All controlled API errors, binding failures, missing routes and unexpected failures
+use `application/problem+json` with the same nine-field store contract. Clients branch
+on `code`, and use `traceId` (also `X-Request-ID`) for log correlation. Binding errors
+return 400 instead of FastAPI's default 422. Provider outages and failed evidence
+verification return safe 503 responses; unexpected bugs return 500. Raw provider/model
+messages, request bodies and query values are never included in public problems.
+See [the problem contract](docs/api-problem-contract.md).
+
 ## Frontend contract
 
-`contracts/answer.schema.json` is generated from the Python models:
+`contracts/openapi.json` is generated from the actual FastAPI routes, typed catalog,
+query/answer DTOs and explicit Problem Details responses. The answer JSON Schema
+is also exported for standalone consumers:
 
 ```bash
 uv run knowledge export-contract
 ```
 
-The Angular repository vendors this schema and generates its TypeScript types.
+The Angular repository vendors the reviewed OpenAPI artifact, pins its upstream commit
+and SHA-256, and generates the real TypeScript Kiota client. Generated clients belong
+to the Web repository. Endpoints have stable operation IDs; the generated request
+builders include error mappings for `application/problem+json`. CI rejects OpenAPI drift.
 When changing the response, update both snapshots and the schema version for a
 breaking change. Responses distinguish `answered`, `partial`, `not_found`,
 `evidence`/`model`, `local_keyword`/`azure_hybrid` and `isDemo`.

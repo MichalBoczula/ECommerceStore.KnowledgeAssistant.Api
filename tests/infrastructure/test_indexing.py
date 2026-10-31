@@ -2,8 +2,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from knowledge_assistant.config import Settings
-from knowledge_assistant.retrieval import AzureRetriever
+from knowledge_assistant.infrastructure.configuration.settings import Settings
+from knowledge_assistant.infrastructure.retrieval.azure_retriever import AzureRetriever
 
 
 def indexer():

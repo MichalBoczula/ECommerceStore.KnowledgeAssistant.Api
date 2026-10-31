@@ -1,9 +1,8 @@
 import json
-import re
-from collections.abc import Callable
 
 from azure.core.credentials import AzureKeyCredential
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.core.exceptions import AzureError
+from azure.identity import DefaultAzureCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
@@ -18,71 +17,16 @@ from azure.search.documents.indexes.models import (
     VectorSearchProfile,
 )
 from azure.search.documents.models import VectorizedQuery
-from openai import OpenAI
+from openai import OpenAIError
 
-from .config import Settings
-from .ingestion import canonical, digest
-from .models import Corpus, Document, Query, Source
+from knowledge_assistant.application.contracts import Query
+from knowledge_assistant.application.errors import DependencyUnavailableError
+from knowledge_assistant.domain.errors import EvidenceVerificationError
+from knowledge_assistant.domain.models import Corpus, Document, Source
 
-
-def openai_client(settings: Settings) -> OpenAI:
-    key: str | Callable[[], str] = (
-        settings.openai_key.get_secret_value()
-        if settings.openai_key
-        else get_bearer_token_provider(DefaultAzureCredential(), "https://ai.azure.com/.default")
-    )
-    return OpenAI(
-        base_url=settings.openai_endpoint.rstrip("/") + "/", api_key=key, timeout=45, max_retries=2
-    )
-
-
-def tokens(text: str) -> set[str]:
-    return set(re.findall(r"[a-z0-9]+", text.lower())) - {
-        "the",
-        "a",
-        "an",
-        "and",
-        "or",
-        "how",
-        "does",
-        "for",
-        "me",
-        "give",
-        "to",
-        "of",
-        "in",
-        "works",
-        "work",
-        "tell",
-        "please",
-        "is",
-        "it",
-        "this",
-        "show",
-        "what",
-    }
-
-
-class LocalRetriever:
-    mode = "local_keyword"
-
-    def __init__(self, corpus: Corpus):
-        self.corpus = corpus
-
-    def search(self, query: Query, limit: int = 12) -> list[Document]:
-        terms = tokens(query.question)
-        scored = []
-        for doc in self.corpus.documents:
-            if doc.source.service != query.service or doc.source.snapshot_id != query.snapshot_id:
-                continue
-            matched = terms & tokens(doc.title + " " + doc.content)
-            if not matched:
-                continue
-            score = len(matched) + len(terms & tokens(doc.title)) * 2
-            if doc.kind == "api_contract" and doc.payload.get("method") == "POST":
-                score += 2 if terms & {"add", "create", "new", "post"} else 0
-            scored.append((score, doc))
-        return [doc for _, doc in sorted(scored, key=lambda x: (-x[0], x[1].id))[:limit]]
+from ..clients.openai_client import openai_client
+from ..configuration.settings import Settings
+from ..ingestion.livedocs import canonical, digest
 
 
 class AzureRetriever:
@@ -209,6 +153,12 @@ class AzureRetriever:
         }
 
     def search(self, query: Query, limit: int = 12) -> list[Document]:
+        try:
+            return self._search(query, limit)
+        except (AzureError, OpenAIError) as exc:
+            raise DependencyUnavailableError() from exc
+
+    def _search(self, query: Query, limit: int) -> list[Document]:
         def literal(value: str) -> str:
             return "'" + value.replace("'", "''") + "'"
 
@@ -234,7 +184,9 @@ class AzureRetriever:
         for row in results:
             source = Source.model_validate_json(row["sourceJson"])
             if source.service != query.service or source.snapshot_id != query.snapshot_id:
-                raise ValueError("Search returned evidence outside the selected snapshot")
+                raise EvidenceVerificationError(
+                    "Search returned evidence outside the selected snapshot"
+                )
             document_id = row["documentId"]
             if document_id in seen:
                 continue
