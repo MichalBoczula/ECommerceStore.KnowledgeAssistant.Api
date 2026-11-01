@@ -1,8 +1,8 @@
 from typing import Literal
 
-from knowledge_assistant.domain.common.model import Model
+from pydantic import Field
 
-from .contracts import Rule
+from knowledge_assistant.domain.common.model import Model
 
 
 class PlanSection(Model):
@@ -11,7 +11,7 @@ class PlanSection(Model):
     type: Literal["explanation", "validation", "api_contract", "scenario"]
     title: str
     text: str
-    rules: list[Rule]
+    rule_ids: list[str] = Field(max_length=100)
     document_id: str | None
     generated_example_json: str | None
     source_ids: list[str]
@@ -19,5 +19,5 @@ class PlanSection(Model):
 
 class AnswerPlan(Model):
     status: Literal["answered", "partial", "not_found"]
-    sections: list[PlanSection]
+    sections: list[PlanSection] = Field(max_length=12)
     limitations: list[str]

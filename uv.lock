@@ -439,6 +439,7 @@ dependencies = [
     { name = "openai" },
     { name = "openapi-schema-validator" },
     { name = "pydantic-settings" },
+    { name = "referencing" },
     { name = "uvicorn" },
 ]
 
@@ -460,6 +461,7 @@ requires-dist = [
     { name = "openai", specifier = ">=2,<3" },
     { name = "openapi-schema-validator", specifier = ">=0.6,<1" },
     { name = "pydantic-settings", specifier = ">=2.8,<3" },
+    { name = "referencing", specifier = ">=0.36,<1" },
     { name = "uvicorn", specifier = ">=0.34,<1" },
 ]
 

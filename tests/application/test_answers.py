@@ -37,7 +37,9 @@ def test_invented_citations_are_rejected(demo):
 
 def test_invalid_generated_example_is_omitted(demo):
     docs = copy.deepcopy(LocalRetriever(demo.corpus).search(query()))
-    next(d for d in docs if d.kind == "api_contract").payload["exampleRequest"] = None
+    next(d for d in docs if d.kind == "api_contract").payload.update(
+        exampleRequest=None, hasDocumentedExample=False
+    )
     plan = EvidencePlanner().plan(QUESTION, docs)
     plan.sections[-1].generated_example_json = '{"price":-5}'
     result = assemble(query(), docs, plan, "model", "local_keyword", True)
@@ -56,7 +58,9 @@ def test_service_and_snapshot_isolation(demo):
 
 def test_malformed_generated_json_does_not_discard_supported_rules(demo):
     docs = copy.deepcopy(LocalRetriever(demo.corpus).search(query()))
-    next(d for d in docs if d.kind == "api_contract").payload["exampleRequest"] = None
+    next(d for d in docs if d.kind == "api_contract").payload.update(
+        exampleRequest=None, hasDocumentedExample=False
+    )
     plan = EvidencePlanner().plan(QUESTION, docs)
     plan.sections[-1].generated_example_json = "not JSON"
     result = assemble(query(), docs, plan, "model", "local_keyword", True)
