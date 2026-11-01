@@ -150,6 +150,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          pull: true
           push: false
           load: true
           tags: ${{ env.CI_IMAGE }}
