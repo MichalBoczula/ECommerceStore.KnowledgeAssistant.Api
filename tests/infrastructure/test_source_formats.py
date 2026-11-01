@@ -140,6 +140,81 @@ def test_ambiguous_results_are_preserved_without_guessing_an_outline_row(bundle_
     assert bundle_report(metadata, ref, docs)["warnings"][0]["code"] == "ambiguous_execution"
 
 
+def test_unknown_explicit_ids_cannot_fall_back_to_a_matching_name(bundle_factory):
+    feature = b"""@KNOWN-ID
+Feature: Phone
+  Scenario: Create phone
+    Then it succeeds
+"""
+    docs, _, _ = imported(
+        bundle_factory,
+        {
+            "bdd/mobile.feature": feature,
+            "allure-results/demo-result.json": {
+                "uuid": "r",
+                "name": "Create phone",
+                "status": "passed",
+                "labels": [
+                    {"name": "feature", "value": "Phone"},
+                    {"name": "scenarioId", "value": "WRONG-ID"},
+                ],
+            },
+            "sources/operation-links.json": {
+                "operations": [
+                    {
+                        "operationId": "createMobilePhone",
+                        "scenarios": [
+                            {
+                                "scenarioId": "WRONG-ID",
+                                "feature": "mobile.feature",
+                                "scenario": "Create phone",
+                            }
+                        ],
+                    }
+                ]
+            },
+        },
+    )
+    execution = next(d for d in docs if d.kind == "execution")
+    scenario = next(d for d in docs if d.kind == "scenario")
+    link = next(d for d in docs if d.kind == "operation_links")
+    assert execution.payload["scenarioDocumentIds"] == []
+    assert scenario.id not in link.payload["relatedDocumentIds"]
+    assert link.payload["ingestionWarnings"][0]["code"] == "unresolved_scenario"
+
+
+def test_allure_gherkin_label_tags_are_explicit_scenario_ids(bundle_factory):
+    docs, _, _ = imported(
+        bundle_factory,
+        {
+            "bdd/mobile.feature": b"""Feature: Phone
+  @allure.label.scenarioId:CASE-1
+  Scenario: Create phone
+    Then it succeeds
+""",
+            "allure-results/demo-result.json": {
+                "uuid": "r",
+                "name": "Create phone",
+                "status": "passed",
+                "labels": [{"name": "scenarioId", "value": "CASE-1"}],
+            },
+            "sources/operation-links.json": {
+                "operations": [
+                    {
+                        "operationId": "createMobilePhone",
+                        "scenarios": [{"scenarioId": "CASE-1"}],
+                    }
+                ]
+            },
+        },
+    )
+    scenario = next(d for d in docs if d.kind == "scenario")
+    execution = next(d for d in docs if d.kind == "execution")
+    assert "CASE-1" in scenario.payload["scenarioIds"]
+    assert execution.payload["scenarioDocumentIds"] == [scenario.id]
+    assert scenario.payload["operationIds"] == ["createMobilePhone"]
+
+
 def test_payment_case_ids_inline_refs_and_unreferenced_policy_remain_distinct(bundle_factory):
     source = "sample.Policy.require_name"
     docs, _, _ = imported(

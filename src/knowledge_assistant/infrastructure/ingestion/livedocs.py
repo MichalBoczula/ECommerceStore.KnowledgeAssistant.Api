@@ -260,6 +260,13 @@ def documents_from_bundle(
                     for step in steps
                 )
                 tags = [tag["name"] for tag in case.get("tags", [])]
+                for tag in tags:
+                    label, separator, value = tag.removeprefix("@").partition(":")
+                    if separator and label.casefold() in {
+                        "allure.label.scenarioid",
+                        "allure.label.caseid",
+                    }:
+                        scenario_ids.append(value)
                 # Compiled pickles expand every outline row, backgrounds and data tables.
                 case_key = digest(canonical([case["name"], text, index]).encode())[:20]
                 add(
@@ -286,8 +293,18 @@ def documents_from_bundle(
                 )
         if path.startswith("allure-results/") and path.endswith("-result.json"):
             result = loads(content)
-
+            if not isinstance(result, dict):
+                raise ValueError("Invalid Allure execution source")
             check_attachments(result, files)
+            for key in ("labels", "parameters"):
+                records = result.get(key) or []
+                if not isinstance(records, list) or any(
+                    not isinstance(record, dict)
+                    or not isinstance(record.get("name"), str)
+                    or not isinstance(record.get("value"), str)
+                    for record in records
+                ):
+                    raise ValueError("Invalid Allure labels or parameters")
             if not result.get("uuid") or result.get("status") not in {
                 "passed",
                 "failed",
@@ -326,7 +343,11 @@ def documents_from_bundle(
         raise ValueError("No Allure test results")
 
     spec = loads(files["sources/openapi.json"])
-    if not str(spec.get("openapi", "")).startswith("3.") or "paths" not in spec:
+    if (
+        not isinstance(spec, dict)
+        or not str(spec.get("openapi", "")).startswith("3.")
+        or not isinstance(spec.get("paths"), dict)
+    ):
         raise ValueError("An OpenAPI 3 document is required")
     operation_ids = set()
     for path, raw_item in spec["paths"].items():

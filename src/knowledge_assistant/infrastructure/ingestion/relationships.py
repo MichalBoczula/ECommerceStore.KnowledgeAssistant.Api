@@ -31,12 +31,9 @@ def relate(documents: list[Document]) -> None:
         for identity in doc.payload.get("scenarioIds", []):
             ids[identity].append(doc)
     for execution in executions:
-        candidates = {
-            d.id: d
-            for identity in execution.payload.get("scenarioIds", [])
-            for d in ids.get(identity, [])
-        }
-        if not candidates:
+        identities = execution.payload.get("scenarioIds", [])
+        candidates = {d.id: d for identity in identities for d in ids.get(identity, [])}
+        if not identities:
             candidates = {d.id: d for d in names.get(execution.title, [])}
         feature = next(
             (
@@ -131,7 +128,7 @@ def relate(documents: list[Document]) -> None:
                 )
                 targets = list(ids.get(identity, [])) if identity else []
                 paths = feature_candidates(str(reference.get("feature", "")), feature_paths)
-                if not targets:
+                if not identity:
                     targets = [
                         d
                         for d in scenarios
@@ -141,7 +138,7 @@ def relate(documents: list[Document]) -> None:
                             or d.title == reference.get("scenario")
                         )
                     ]
-                if paths:
+                if reference.get("feature"):
                     targets = [d for d in targets if d.payload["featurePath"] in paths]
                 granularity = "scenario"
             else:
