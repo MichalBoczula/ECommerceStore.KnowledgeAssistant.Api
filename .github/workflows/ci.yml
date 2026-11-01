@@ -1,20 +1,192 @@
 name: CI
+
 on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
+
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  verify:
+  dependency-review:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan repository history for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run pytest -q
-      - run: uv run knowledge export-contract
-      - run: git diff --exit-code -- contracts/
-      - run: docker build -t knowledge-assistant-api:ci .
+      - name: Check source and scripts
+        run: bash scripts/ci.sh source
+      - name: Build the Python package
+        run: bash scripts/ci.sh build
+      - name: Check Python lint and formatting
+        run: bash scripts/ci.sh format
+      - name: Verify generated OpenAPI and answer schema
+        run: bash scripts/ci.sh contract
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: generated-contract
+          path: contracts/
+          if-no-files-found: error
+
+  unit-tests:
+    name: ${{ matrix.suite }} tests
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [domain, application, infrastructure]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - name: Run layer tests
+        env:
+          SUITE: ${{ matrix.suite }}
+        run: VERIFY_SUMMARY_FILE="$GITHUB_STEP_SUMMARY" bash scripts/ci.sh test "$SUITE"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.suite }}-test-results
+          path: artifacts/verification/${{ matrix.suite }}/
+          if-no-files-found: warn
+
+  acceptance-tests:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - name: Verify HTTP behavior and Problem Details
+        run: VERIFY_SUMMARY_FILE="$GITHUB_STEP_SUMMARY" bash scripts/ci.sh test api
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-acceptance-results
+          path: artifacts/verification/api/
+          if-no-files-found: warn
+
+  quality-gate:
+    if: always()
+    needs: [build, unit-tests, acceptance-tests, secret-scan, dependency-review]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require every mandatory check
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BUILD: ${{ needs.build.result }}
+          UNIT: ${{ needs.unit-tests.result }}
+          ACCEPTANCE: ${{ needs.acceptance-tests.result }}
+          SECRET_SCAN: ${{ needs.secret-scan.result }}
+          DEPENDENCY_REVIEW: ${{ needs.dependency-review.result }}
+        run: |
+          set -euo pipefail
+          for job in BUILD UNIT ACCEPTANCE SECRET_SCAN; do
+            if [[ "${!job}" != success ]]; then
+              echo "$job must succeed; actual result: ${!job}" >&2
+              exit 1
+            fi
+          done
+          case "$EVENT_NAME" in
+            pull_request) expected=success ;;
+            push) expected=skipped ;;
+            *) echo "Unexpected event: $EVENT_NAME" >&2; exit 1 ;;
+          esac
+          if [[ "$DEPENDENCY_REVIEW" != "$expected" ]]; then
+            echo "Dependency Review must be $expected; actual result: $DEPENDENCY_REVIEW" >&2
+            exit 1
+          fi
+
+  docker-image:
+    # Dependency Review is intentionally skipped on push. The successful aggregate
+    # gate permits image work through that skipped ancestor.
+    if: ${{ always() && !cancelled() && needs.quality-gate.result == 'success' }}
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI_IMAGE: knowledge-assistant-api:ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build one local image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.CI_IMAGE }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.description=Knowledge Assistant API with synthetic demo corpus
+      - name: Smoke test the container
+        run: bash scripts/smoke-image.sh "$CI_IMAGE"
+      - name: Scan the image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.CI_IMAGE }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+      - name: Record scanned image identity
+        shell: bash
+        run: |
+          image_id="$(docker image inspect --format '{{.Id}}' "$CI_IMAGE")"
+          test -n "$image_id"
+          echo "SCANNED_IMAGE_ID=$image_id" >> "$GITHUB_ENV"
+          echo "Scanned image ID: $image_id" >> "$GITHUB_STEP_SUMMARY"
+      - name: Log in to Docker Hub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Tag and publish the scanned image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: bash scripts/publish-image.sh "$CI_IMAGE" mb0101/ecommerce-store-knowledge-assistant-api knowledge_api
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: image-reference
+          path: artifacts/image-reference.json
+          if-no-files-found: error
+          retention-days: 30
