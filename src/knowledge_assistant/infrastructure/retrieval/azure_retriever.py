@@ -1,214 +1,147 @@
-import json
+"""Read-only hybrid retrieval, hydrated exclusively from the selected local corpus."""
 
 from azure.core.credentials import AzureKeyCredential
-from azure.core.exceptions import AzureError
+from azure.core.exceptions import AzureError, ResourceNotFoundError
 from azure.identity import DefaultAzureCredential
 from azure.search.documents import SearchClient
-from azure.search.documents.indexes import SearchIndexClient
-from azure.search.documents.indexes.models import (
-    ExhaustiveKnnAlgorithmConfiguration,
-    ExhaustiveKnnParameters,
-    SearchableField,
-    SearchField,
-    SearchFieldDataType,
-    SearchIndex,
-    SimpleField,
-    VectorSearch,
-    VectorSearchProfile,
-)
 from azure.search.documents.models import VectorizedQuery
 from openai import OpenAIError
 
 from knowledge_assistant.application.contracts import Query
 from knowledge_assistant.application.errors import DependencyUnavailableError
 from knowledge_assistant.domain.errors import EvidenceVerificationError
-from knowledge_assistant.domain.models import Corpus, Document, Source
+from knowledge_assistant.domain.models import Corpus, Document
 
-from ..clients.openai_client import openai_client
+from ..clients.embeddings import EmbeddingClient, InvalidEmbeddingError, validate_vector
 from ..configuration.settings import Settings
-from ..ingestion.livedocs import canonical, digest
+from .context import expand_context
+from .index_plan import (
+    INPUT_BYTES,
+    MANIFEST_KIND,
+    chunk_text,
+    corpus_hash,
+    document_hash,
+    embedding_profile,
+    literal,
+    manifest_key,
+    scope,
+)
 
 
 class AzureRetriever:
     mode = "azure_hybrid"
 
-    def __init__(self, settings: Settings, corpus: Corpus | None = None):
+    def __init__(self, settings: Settings, corpus: Corpus, *, client=None, embeddings=None):
         settings.require_azure()
         if not settings.search_endpoint:
             raise ValueError("Configure KA_SEARCH_ENDPOINT")
         self.settings = settings
-        self.documents = {d.id: d for d in corpus.documents} if corpus else {}
-        self.credential = (
-            AzureKeyCredential(settings.search_key.get_secret_value())
-            if settings.search_key
-            else DefaultAzureCredential()
+        self.corpus = corpus
+        self.documents = {d.id: d for d in corpus.documents}
+        if not self.documents or len(self.documents) != len(corpus.documents):
+            raise ValueError("Retrieval requires a nonempty corpus with unique document IDs")
+        self.hashes = {d.id: document_hash(d) for d in corpus.documents}
+        self.corpus_sha, self.profile = corpus_hash(corpus), embedding_profile(settings)
+        self.credential = None
+        if client is None:
+            self.credential = (
+                AzureKeyCredential(settings.search_key.get_secret_value())
+                if settings.search_key
+                else DefaultAzureCredential()
+            )
+        self.client = client or SearchClient(
+            settings.search_endpoint, settings.search_index, self.credential
         )
-        self.client = SearchClient(settings.search_endpoint, settings.search_index, self.credential)
-        self.index_client = SearchIndexClient(settings.search_endpoint, self.credential)
-        self.openai = openai_client(settings)
-        self.profile = digest(
-            canonical(
-                [
-                    settings.openai_endpoint,
-                    settings.embedding_deployment,
-                    settings.embedding_dimensions,
-                ]
-            ).encode()
-        )
-
-    def embed(self, texts: list[str]) -> list[list[float]]:
-        result = self.openai.embeddings.create(
-            model=self.settings.embedding_deployment,
-            input=texts,
-            dimensions=self.settings.embedding_dimensions,
-        )
-        ordered = sorted(result.data, key=lambda item: item.index)
-        if len(ordered) != len(texts):
-            raise ValueError("Embedding response omitted documents")
-        vectors = [item.embedding for item in ordered]
-        if any(len(v) != self.settings.embedding_dimensions for v in vectors):
-            raise ValueError("Embedding dimensions differ from the index configuration")
-        return vectors
-
-    def ensure_index(self) -> None:
-        fields = [SimpleField(name="id", type="Edm.String", key=True)]
-        for field in ("service", "snapshotId", "kind", "embeddingProfile"):
-            fields.append(SimpleField(name=field, type="Edm.String", filterable=True))
-        fields.append(SimpleField(name="documentId", type="Edm.String", filterable=True))
-        fields.extend(
-            [
-                SearchableField(name="title", type="Edm.String"),
-                SearchableField(name="content", type="Edm.String"),
-                SimpleField(name="sourceJson", type="Edm.String"),
-                SimpleField(name="payloadJson", type="Edm.String"),
-                SimpleField(name="operationId", type="Edm.String", filterable=True),
-                SimpleField(name="tagsJson", type="Edm.String"),
-                SearchField(
-                    name="embedding",
-                    type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
-                    searchable=True,
-                    hidden=True,
-                    vector_search_dimensions=self.settings.embedding_dimensions,
-                    vector_search_profile_name="knowledge-profile",
-                ),
-            ]
-        )
-        vectors = VectorSearch(
-            algorithms=[
-                ExhaustiveKnnAlgorithmConfiguration(
-                    name="exact-cosine", parameters=ExhaustiveKnnParameters(metric="cosine")
-                )
-            ],
-            profiles=[
-                VectorSearchProfile(
-                    name="knowledge-profile", algorithm_configuration_name="exact-cosine"
-                )
-            ],
-        )
-        self.index_client.create_or_update_index(
-            SearchIndex(name=self.settings.search_index, fields=fields, vector_search=vectors)
-        )
-
-    def upload(self, corpus: Corpus) -> dict:
-        self.ensure_index()
-        indexed = 0
-        chunks = [
-            (doc, part, doc.content[start : start + 10000])
-            for doc in corpus.documents
-            for part, start in enumerate(range(0, max(len(doc.content), 1), 10000))
-        ]
-        for start in range(0, len(chunks), 16):
-            batch = chunks[start : start + 16]
-            texts = [d.title + "\n" + content for d, _, content in batch]
-            rows = []
-            for (doc, part, _), vector, text in zip(batch, self.embed(texts), texts, strict=True):
-                rows.append(
-                    {
-                        "id": f"{doc.id}-{part}",
-                        "documentId": doc.id,
-                        "service": doc.source.service,
-                        "snapshotId": corpus.snapshot_id,
-                        "kind": doc.kind,
-                        "embeddingProfile": self.profile,
-                        "title": doc.title,
-                        "content": text,
-                        "sourceJson": doc.source.model_dump_json(by_alias=True),
-                        "payloadJson": canonical(doc.payload),
-                        "operationId": doc.operation_id,
-                        "tagsJson": canonical(doc.tags),
-                        "embedding": vector,
-                    }
-                )
-            result = self.client.merge_or_upload_documents(rows)
-            if len(result) != len(rows) or any(not item.succeeded for item in result):
-                raise ValueError("Index upload was incomplete; snapshot must not be activated")
-            indexed += len(result)
-        stats = self.index_client.get_index_statistics(self.settings.search_index)
-        return {
-            "indexedChunks": indexed,
-            "sourceDocuments": len(corpus.documents),
-            "storageBytes": stats.storage_size,
-            "vectorIndexBytes": stats.vector_index_size,
-            "note": "Azure storage statistics update asynchronously.",
-        }
+        self.embeddings = embeddings or EmbeddingClient(settings)
 
     def search(self, query: Query, limit: int = 12) -> list[Document]:
         try:
             return self._search(query, limit)
-        except (AzureError, OpenAIError) as exc:
+        except (AzureError, OpenAIError, InvalidEmbeddingError) as exc:
             raise DependencyUnavailableError() from exc
 
     def _search(self, query: Query, limit: int) -> list[Document]:
-        def literal(value: str) -> str:
-            return "'" + value.replace("'", "''") + "'"
-
-        scope = (
-            f"service eq {literal(query.service)} and "
-            f"snapshotId eq {literal(query.snapshot_id)} and "
-            f"embeddingProfile eq {literal(self.profile)}"
+        if query.snapshot_id != self.corpus.snapshot_id:
+            raise EvidenceVerificationError("Query differs from the configured corpus")
+        if not 1 <= limit <= 50:
+            raise ValueError("Retrieval limit must be from 1 to 50")
+        if not query.question.strip():
+            return []
+        try:
+            marker = self.client.get_document(manifest_key(self.corpus_sha, self.profile))
+        except ResourceNotFoundError:
+            raise DependencyUnavailableError(
+                "Selected corpus has no completed index upload"
+            ) from None
+        if (
+            marker.get("kind") != MANIFEST_KIND
+            or marker.get("corpusHash") != self.corpus_sha
+            or marker.get("embeddingProfile") != self.profile
+            or marker.get("snapshotId") != query.snapshot_id
+            or marker.get("sourceDocumentCount") != len(self.documents)
+            or not isinstance(marker.get("chunkCount"), int)
+            or marker["chunkCount"] < 1
+        ):
+            raise EvidenceVerificationError(
+                "Index completion marker differs from the selected corpus"
+            )
+        inputs = (
+            [query.question]
+            if len(query.question.encode()) <= INPUT_BYTES
+            else list(chunk_text("", query.question))
         )
-        vector = self.embed([query.question])[0]
+        vectors = self.embeddings.embed(inputs)
+        vector = [sum(values) / len(vectors) for values in zip(*vectors, strict=True)]
+        vector = validate_vector(vector, self.settings.embedding_dimensions)
+        filtered = (
+            scope(self.corpus_sha, self.profile)
+            + f" and service eq {literal(query.service)}"
+            + f" and snapshotId eq {literal(query.snapshot_id)} and kind ne '{MANIFEST_KIND}'"
+        )
         results = self.client.search(
-            query.question,
-            filter=scope,
-            top=min(limit * 3, 100),
+            search_text=query.question,
+            filter=filtered,
+            top=min(limit * 4, 100),
+            select=[
+                "documentId",
+                "documentHash",
+                "service",
+                "snapshotId",
+                "kind",
+                "corpusHash",
+                "embeddingProfile",
+            ],
             vector_queries=[
                 VectorizedQuery(
-                    vector=vector, k_nearest_neighbors=min(limit * 3, 100), fields="embedding"
+                    vector=vector, k_nearest_neighbors=min(limit * 4, 100), fields="embedding"
                 )
             ],
             vector_filter_mode="preFilter",
         )
-        docs = []
-        seen = set()
+        docs, seen = [], set()
         for row in results:
-            source = Source.model_validate_json(row["sourceJson"])
-            if source.service != query.service or source.snapshot_id != query.snapshot_id:
+            doc = self.documents.get(row.get("documentId"))
+            if (
+                doc is None
+                or row.get("corpusHash") != self.corpus_sha
+                or row.get("embeddingProfile") != self.profile
+                or row.get("service") != query.service
+                or row.get("snapshotId") != query.snapshot_id
+                or doc.source.service != query.service
+                or doc.source.snapshot_id != query.snapshot_id
+                or row.get("kind") != doc.kind
+                or row.get("documentHash") != self.hashes[doc.id]
+            ):
                 raise EvidenceVerificationError(
-                    "Search returned evidence outside the selected snapshot"
+                    "Search returned unknown, stale or out-of-scope evidence"
                 )
-            document_id = row["documentId"]
-            if document_id in seen:
-                continue
-            seen.add(document_id)
-            doc = self.documents.get(document_id) or Document(
-                id=document_id,
-                source=source,
-                kind=row["kind"],
-                title=row["title"],
-                content=row["content"],
-                payload=json.loads(row["payloadJson"]),
-                operation_id=row.get("operationId"),
-                tags=json.loads(row["tagsJson"]),
-            )
-            docs.append(doc)
-            if len(docs) >= limit:
-                break
-        return docs
+            if doc.id not in seen:
+                seen.add(doc.id)
+                docs.append(doc)
+        return expand_context(docs, self.corpus, query, limit)
 
-    def close(self) -> None:
+    def close(self):
         self.client.close()
-        self.index_client.close()
-        self.openai.close()
+        self.embeddings.close()
         if hasattr(self.credential, "close"):
             self.credential.close()

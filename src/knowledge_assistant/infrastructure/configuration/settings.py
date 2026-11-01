@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,11 +17,12 @@ class Settings(BaseSettings):
     openai_endpoint: str = ""
     openai_key: SecretStr | None = None
     embedding_deployment: str = ""
-    embedding_dimensions: int = 1536
+    embedding_dimensions: int = Field(default=1536, ge=1, le=4096)
+    embedding_revision: str = Field(default="1", min_length=1, max_length=128)
     chat_deployment: str = ""
     api_key: SecretStr | None = None
     cors_origins: list[str] = []
-    max_candidates: int = 12
+    max_candidates: int = Field(default=12, ge=1, le=50)
     livedocs_base_url: str = ""
 
     def require_azure(self, *, chat: bool = False) -> None:

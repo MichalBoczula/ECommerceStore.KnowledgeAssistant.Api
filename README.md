@@ -75,16 +75,32 @@ For ingestion, use a Search **admin key** or an identity with index-management/d
 write permissions. The API uses a read-only query key. Run indexing separately:
 
 ```bash
-uv run knowledge index --corpus artifacts/active-corpus.json
+uv run knowledge plan-index \
+  --corpus artifacts/active-corpus.json \
+  --ingestion-report artifacts/ingestion-report.json
+uv run knowledge index \
+  --corpus artifacts/active-corpus.json \
+  --ingestion-report artifacts/ingestion-report.json
 ```
 
-The command creates the versioned index schema, embeds bounded chunks without
-omitting text tails, uploads documents and reports Azure storage statistics.
+Planning makes no cloud calls and reports chunk counts, cache reuse and raw vector bytes.
+Indexing verifies the corpus against its successful ingestion report, creates a missing
+index or validates an existing schema, embeds bounded UTF-8 chunks with overlap, reuses
+successful embeddings from the local cache, and reports measured Azure storage statistics.
+It refuses incompatible existing indexes instead of updating them in place. Search stores
+compact text and identities; source JSON and full contracts remain in the reviewed corpus.
+The completion marker is published only after every chunk upload succeeds and is visible.
+Runtime requires this marker and uses the query key, with no index-management client.
 Exhaustive cosine vector search keeps the first small corpus simple. Hybrid queries
 combine full-text and vector retrieval, with service, snapshot and embedding-profile
 filters. Changing the embedding model or dimensions requires reindexing and a new
 index name if the vector schema changes. Do not update a deployment's model in place
-without reindexing the entire corpus.
+without reindexing the entire corpus. Increment `KA_EMBEDDING_REVISION` when the model
+behind the same deployment name changes. Match the revision and index name in Terraform.
+The application validates every retrieved identity/hash and hydrates original documents
+from its local corpus. Bounded expansion follows explicit same-service operation links
+to include contracts, policies and flows. It never falls back to index-supplied payloads.
+See [the indexing and retrieval runbook](docs/embeddings-and-retrieval.md).
 
 Statistics are eventually consistent. The 50 MB Free Search capacity applies to
 index storage, not archive ZIP size or exported JSON bytes. Activation is a separate

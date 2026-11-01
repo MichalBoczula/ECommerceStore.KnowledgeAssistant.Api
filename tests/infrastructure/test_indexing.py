@@ -1,47 +1,121 @@
-from types import SimpleNamespace
-
 import pytest
+from azure.core.exceptions import AzureError
 
-from knowledge_assistant.infrastructure.configuration.settings import Settings
-from knowledge_assistant.infrastructure.retrieval.azure_retriever import AzureRetriever
+from knowledge_assistant.infrastructure.retrieval.azure_indexer import AzureIndexer
+from knowledge_assistant.infrastructure.retrieval.index_plan import (
+    INPUT_BYTES,
+    MANIFEST_KIND,
+    manifest_key,
+    plan_index,
+)
+from knowledge_assistant.infrastructure.retrieval.index_schema import compatible, index_definition
 
 
-def indexer():
-    result = object.__new__(AzureRetriever)
-    result.settings = Settings()
-    result.profile = "embedding-profile"
-    result.index_client = SimpleNamespace(
-        create_or_update_index=lambda index: index,
-        get_index_statistics=lambda name: SimpleNamespace(storage_size=100, vector_index_size=0),
+def indexer(cloud):
+    return AzureIndexer(
+        cloud.settings, client=cloud.search, index_client=cloud.index, embeddings=cloud.embeddings
     )
-    result.embed = lambda texts: [[0.1] * 1536 for _ in texts]
-    return result
 
 
-def test_all_text_chunks_are_uploaded_including_the_tail(demo):
-    azure = indexer()
-    rows = []
-
-    def upload(batch):
-        rows.extend(batch)
-        return [SimpleNamespace(succeeded=True) for _ in batch]
-
-    azure.client = SimpleNamespace(merge_or_upload_documents=upload)
+def test_all_unicode_chunks_and_text_tails_are_uploaded_without_payload_duplication(
+    demo, cloud, tmp_path
+):
     corpus = demo.corpus.model_copy(deep=True)
     corpus.documents = corpus.documents[:1]
-    corpus.documents[0].content = "a" * 25000 + "unique tail rule"
-    stats = azure.upload(corpus)
-    assert stats["indexedChunks"] == 3
-    assert stats["sourceDocuments"] == 1
-    assert rows[-1]["content"].endswith("unique tail rule")
-    assert len({row["id"] for row in rows}) == 3
-    assert all(row["snapshotId"] == "demo-v1" for row in rows)
-
-
-def test_partial_search_upload_stops_snapshot_publication(demo):
-    azure = indexer()
-    azure.client = SimpleNamespace(
-        merge_or_upload_documents=lambda batch: [SimpleNamespace(succeeded=False) for _ in batch]
+    corpus.documents[0].content = "📱ę" * 9000 + " unique tail rule"
+    plan = plan_index(corpus, cloud.settings)
+    result = indexer(cloud).upload(plan, tmp_path)
+    chunks = [r for r in cloud.search.rows.values() if r["kind"] != MANIFEST_KIND]
+    assert chunks[-1]["content"].endswith("unique tail rule")
+    assert all(len(r["content"].encode()) <= INPUT_BYTES for r in chunks)
+    assert all("payloadJson" not in r and "sourceJson" not in r for r in chunks)
+    assert len({r["id"] for r in chunks}) == len(chunks)
+    assert result["indexedChunks"] == len(chunks) and result["visibleChunksVerified"]
+    assert cloud.search.rows[manifest_key(plan.corpus_sha, plan.profile)]["chunkCount"] == len(
+        chunks
     )
+
+
+def test_unchanged_text_reuses_embeddings_across_retries_and_snapshots(demo, cloud, tmp_path):
+    service = indexer(cloud)
+    plan = plan_index(demo.corpus, cloud.settings)
+    first = service.upload(plan, tmp_path)
+    calls = cloud.embeddings.requests
+    repeated = service.upload(plan, tmp_path)
+    changed = demo.corpus.model_copy(deep=True)
+    changed.snapshot_id = "next"
+    for doc in changed.documents:
+        doc.source.snapshot_id = "next"
+    other = service.upload(plan_index(changed, cloud.settings), tmp_path)
+    assert first["newEmbeddingInputs"] > 0
+    assert repeated["newEmbeddingInputs"] == other["newEmbeddingInputs"] == 0
+    assert repeated["embeddingRequests"] == other["embeddingRequests"] == 0
+    assert cloud.embeddings.requests == calls
+    assert plan.corpus_sha != other["corpusHash"]
+
+
+def test_failed_batch_never_publishes_a_completion_marker(demo, cloud, tmp_path):
+    corpus = demo.corpus.model_copy(deep=True)
+    corpus.documents[0].content = "x" * 150000
+    plan = plan_index(corpus, cloud.settings)
+    cloud.search.fail_upload = 2
     with pytest.raises(ValueError, match="incomplete"):
-        azure.upload(demo.corpus)
+        indexer(cloud).upload(plan, tmp_path)
+    assert cloud.embeddings.requests == 2
+    assert manifest_key(plan.corpus_sha, plan.profile) not in cloud.search.rows
+
+
+def test_unqueryable_upload_is_not_published(demo, cloud, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "knowledge_assistant.infrastructure.retrieval.azure_indexer.time.sleep", lambda _: None
+    )
+    cloud.search.count_override = 0
+    plan = plan_index(demo.corpus, cloud.settings)
+    with pytest.raises(ValueError, match="not all visible"):
+        indexer(cloud).upload(plan, tmp_path)
+    assert manifest_key(plan.corpus_sha, plan.profile) not in cloud.search.rows
+
+
+def test_existing_schema_is_checked_before_embedding_or_mutation(demo, cloud, tmp_path):
+    cloud.index.index = index_definition("knowledge-v1", 8)
+    with pytest.raises(ValueError, match="incompatible"):
+        indexer(cloud).upload(plan_index(demo.corpus, cloud.settings), tmp_path)
+    assert cloud.index.created == cloud.search.uploads == []
+    assert cloud.embeddings.requests == 0
+
+
+def test_definition_round_trip_matches_pinned_sdk_schema(cloud):
+    expected = index_definition("knowledge-v1", 4)
+    actual = type(expected).deserialize(expected.serialize())
+    assert compatible(actual, expected)
+    actual.vector_search.algorithms[0].parameters.metric = "euclidean"
+    assert not compatible(actual, expected)
+
+
+def test_statistics_outage_does_not_hide_a_completed_upload(demo, cloud, tmp_path):
+    def fail(name):
+        raise AzureError("not public")
+
+    cloud.index.get_index_statistics = fail
+    report = indexer(cloud).upload(plan_index(demo.corpus, cloud.settings), tmp_path)
+    assert report["uploadComplete"] and report["storageBytes"] is None
+
+
+def test_keys_are_bound_to_profile_and_exact_corpus(demo, cloud):
+    first = plan_index(demo.corpus, cloud.settings)
+    changed = demo.corpus.model_copy(deep=True)
+    changed.documents[0].payload["audit"] = "changed source evidence"
+    other = plan_index(changed, cloud.settings)
+    assert first.corpus_sha != other.corpus_sha
+    assert {r["id"] for r in first.rows}.isdisjoint({r["id"] for r in other.rows})
+    cloud.settings.embedding_revision = "2"
+    revised = plan_index(demo.corpus, cloud.settings)
+    assert first.profile != revised.profile
+
+
+def test_plan_and_uploader_must_use_the_same_embedding_profile(demo, cloud, tmp_path):
+    plan = plan_index(demo.corpus, cloud.settings)
+    cloud.settings.embedding_revision = "changed"
+    with pytest.raises(ValueError, match="plan differs"):
+        indexer(cloud).upload(plan, tmp_path)
+    assert cloud.embeddings.requests == 0 and cloud.index.created == []
