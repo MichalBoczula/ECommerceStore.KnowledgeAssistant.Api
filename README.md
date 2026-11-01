@@ -165,3 +165,38 @@ and are not represented as having passed by offline tests.
 The first slice supports business explanations and request contracts. Exhaustive
 cross-service counts, binary attachment retrieval and multi-turn conversations are
 separate work. Top-K similarity results must never be presented as a complete inventory.
+
+## CI and Docker publication
+
+CI follows the storefront Web and Users pattern: dependency review on pull requests,
+repository-history secret scanning, source/build/contract checks, separate test jobs,
+and a required quality gate. The image job builds once, smoke-tests and scans that
+local image for fixable high/critical vulnerabilities, then publishes the same image
+after a successful push to `main`. Pull requests build and scan without Docker Hub login
+or publishing. Test results are uploaded as JUnit artifacts, including on failures.
+
+Enable **Dependency graph** in this repository's **Settings → Advanced Security →
+Supply chain security** before running the PR checks. GitHub dependency review requires
+that setting; the quality gate fails if dependency review is unavailable or fails.
+
+Configure these existing repository Actions secrets:
+
+- `DOCKER_USER`: Docker Hub account with push access to `mb0101/ecommerce-store-knowledge-assistant-api`.
+- `DOCKER_TOKEN`: that account's Docker Hub access token.
+
+Successful main runs publish `mb0101/ecommerce-store-knowledge-assistant-api:<full-commit-sha>`
+and `:latest`, verify both push digests match, and attach `image-reference.json` in the
+`image-reference` workflow artifact. The artifact records the immutable
+`docker.io/mb0101/ecommerce-store-knowledge-assistant-api@sha256:...` reference,
+source commit and scanned image ID. Use the digest reference for deployment.
+
+Add its `knowledge_api` entry to your existing Terraform `app_images` map, preserving
+all other app entries. Run plan/apply from `ECommerceStore.Terraform` with its existing
+Azure Storage backend and deployment variables. This application CI owns image
+publication; Azure credentials, infrastructure deployment and state remain in that
+Terraform checkout.
+
+The published baseline API image includes the labelled synthetic demo corpus and its OCI description states that explicitly. Its container smoke test uses local/evidence mode and checks health, API-key enforcement and a sourced synthetic query. The current Terraform configuration runs Azure mode, so Search/model settings are still required for hosting. Real LiveDocs ingestion/indexing and building an image with the matching real corpus are subsequent work; this publishing pipeline does not load deployment credentials or bundle unreviewed live data.
+
+The same local CI entry points are available in `scripts/ci.sh`.
+
