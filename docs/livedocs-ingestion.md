@@ -121,7 +121,9 @@ Search index storage usage. Measure the actual index after the separate indexing
 
 ## Next step
 
-Once the report is reviewed, run `knowledge index` with the matching corpus, inspect
+Once the report is reviewed, run `knowledge plan-index`, then `knowledge index` with
+both `--corpus` and `--ingestion-report`. Follow the
+[indexing and retrieval runbook](embeddings-and-retrieval.md) and inspect
 Azure's index statistics and validate representative questions against source evidence.
 Corpus activation and the production image are separate reviewable steps. The public
 Answer/OpenAPI contract is unchanged by ingestion, so this step requires no Kiota
