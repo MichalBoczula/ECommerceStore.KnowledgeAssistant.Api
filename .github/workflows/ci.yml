@@ -46,6 +46,8 @@ jobs:
       - run: uv sync --locked
       - name: Check source and scripts
         run: bash scripts/ci.sh source
+      - name: Validate GitHub Actions workflow syntax
+        run: bash scripts/check-workflows.sh
       - name: Build the Python package
         run: bash scripts/ci.sh build
       - name: Check Python lint and formatting
@@ -178,6 +180,8 @@ jobs:
             org.opencontainers.image.description=Knowledge Assistant API with synthetic demo corpus
       - name: Smoke test the container
         run: bash scripts/smoke-image.sh "$CI_IMAGE"
+      - name: Verify refresh corpus checks with a synthetic non-demo fixture
+        run: bash scripts/smoke-refresh-fixture.sh "$CI_IMAGE"
       - name: Scan the image
         uses: aquasecurity/trivy-action@v0.36.0
         with:

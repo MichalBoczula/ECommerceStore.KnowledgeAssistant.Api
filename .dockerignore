@@ -6,3 +6,5 @@ artifacts/*
 !artifacts/active-corpus.json
 tests
 __pycache__
+
+livedocs-source
