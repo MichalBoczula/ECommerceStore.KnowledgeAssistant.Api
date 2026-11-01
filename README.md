@@ -169,6 +169,13 @@ breaking change. Responses distinguish `answered`, `partial`, `not_found`,
 
 ## Containers and infrastructure
 
+The **Refresh Knowledge** workflow ingests an exact successful LiveDocs publication,
+checks the reviewed question set, bounds and completes indexing, verifies live retrieval
+and the first model answer, then builds/smoke-tests/scans a corpus-matched API image.
+It emits immutable API/LiveDocs digests and matching settings for your existing Terraform
+root. Daily polling is opt-in; deployment remains manual through Terraform.
+See [refresh setup, budgets and rollback](docs/documentation-refresh.md).
+
 ```bash
 docker build -t knowledge-assistant-api .
 # For real documentation, after successful indexing:
@@ -246,7 +253,7 @@ Azure Storage backend and deployment variables. This application CI owns image
 publication; Azure credentials, infrastructure deployment and state remain in that
 Terraform checkout.
 
-The published baseline API image includes the labelled synthetic demo corpus and its OCI description states that explicitly. Its container smoke test uses local/evidence mode and checks health, API-key enforcement and a sourced synthetic query. The current Terraform configuration runs Azure mode, so Search/model settings are still required for hosting. Real LiveDocs ingestion/indexing and building an image with the matching real corpus are subsequent work; this publishing pipeline does not load deployment credentials or bundle unreviewed live data.
+The published baseline API image includes the labelled synthetic demo corpus and its OCI description states that explicitly. Its container smoke test uses local/evidence mode and checks exact corpus bytes, health, API-key enforcement and a sourced synthetic query. The current Terraform configuration runs Azure mode, so Search/model settings and a matching real corpus/index are required for hosting. The separate Refresh Knowledge workflow prepares that real-data candidate after configuration and successful live checks; ordinary CI keeps publishing the synthetic baseline. Refresh candidates have separate tags and an immutable Terraform handoff.
 
 The same local CI entry points are available in `scripts/ci.sh`.
 

@@ -73,6 +73,36 @@ class AzureIndexer:
         previous_requests = self.embeddings.requests
         previous_tokens = self.embeddings.input_tokens
         self.ensure_index()
+        try:
+            marker = self.client.get_document(manifest_key(plan.corpus_sha, plan.profile))
+        except ResourceNotFoundError:
+            marker = None
+        if marker is not None:
+            if any(
+                marker.get(key) != value
+                for key, value in {
+                    "kind": MANIFEST_KIND,
+                    "corpusHash": plan.corpus_sha,
+                    "embeddingProfile": plan.profile,
+                    "snapshotId": plan.corpus.snapshot_id,
+                    "sourceDocumentCount": len(plan.corpus.documents),
+                    "chunkCount": len(plan.rows),
+                }.items()
+            ):
+                raise ValueError("Completed index marker differs from the requested plan")
+            self.verify_visible(plan)
+            return {
+                **plan.summary(self.settings.embedding_dimensions),
+                "searchIndex": self.settings.search_index,
+                "uploadComplete": True,
+                "visibleChunksVerified": True,
+                "reusedCompletedSnapshot": True,
+                "cacheHits": 0,
+                "newEmbeddingInputs": 0,
+                "embeddingRequests": 0,
+                "embeddingInputTokens": 0,
+                **self.statistics(),
+            }
         cache = EmbeddingCache(cache_path, plan.profile, self.settings.embedding_dimensions)
         for start in range(0, len(plan.rows), BATCH_SIZE):
             batch = plan.rows[start : start + BATCH_SIZE]
@@ -91,28 +121,28 @@ class AzureIndexer:
             "sourceDocumentCount": len(plan.corpus.documents),
         }
         self.upload_rows([marker])
-        try:
-            stats = self.index_client.get_index_statistics(self.settings.search_index)
-            storage = {
-                "storageBytes": stats.storage_size,
-                "vectorIndexBytes": stats.vector_index_size,
-            }
-        except AzureError:
-            storage = {"storageBytes": None, "vectorIndexBytes": None}
         return {
             **plan.summary(self.settings.embedding_dimensions),
             "searchIndex": self.settings.search_index,
             "uploadComplete": True,
             "visibleChunksVerified": True,
+            "reusedCompletedSnapshot": False,
             "cacheHits": cache.hits,
             "newEmbeddingInputs": cache.misses,
             "embeddingRequests": self.embeddings.requests - previous_requests,
             "embeddingInputTokens": self.embeddings.input_tokens - previous_tokens,
-            **storage,
+            **self.statistics(),
             "note": (
                 "Index statistics are eventual and include other snapshots; activation is separate."
             ),
         }
+
+    def statistics(self):
+        try:
+            stats = self.index_client.get_index_statistics(self.settings.search_index)
+            return {"storageBytes": stats.storage_size, "vectorIndexBytes": stats.vector_index_size}
+        except AzureError:
+            return {"storageBytes": None, "vectorIndexBytes": None}
 
     def close(self):
         self.client.close()

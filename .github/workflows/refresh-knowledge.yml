@@ -1,0 +1,229 @@
+name: Refresh Knowledge
+
+on:
+  workflow_dispatch:
+    inputs:
+      livedocs_commit:
+        description: 'Published LiveDocs full commit; empty selects the newest successful main publication'
+        required: false
+        type: string
+      force_rebuild:
+        description: 'Re-evaluate and rebuild even when an identical handoff is cached'
+        default: false
+        type: boolean
+  schedule:
+    - cron: '17 3 * * *'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: knowledge-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    # Scheduled cloud work is off until the operator opts in. No PR/fork execution.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.KNOWLEDGE_REFRESH_ENABLED == 'true')
+    environment: knowledge-refresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      KA_SEARCH_ENDPOINT: ${{ vars.KA_SEARCH_ENDPOINT }}
+      KA_SEARCH_INDEX: ${{ vars.KA_SEARCH_INDEX || 'knowledge-v1' }}
+      KA_OPENAI_ENDPOINT: ${{ vars.KA_OPENAI_ENDPOINT }}
+      KA_EMBEDDING_DEPLOYMENT: ${{ vars.KA_EMBEDDING_DEPLOYMENT }}
+      KA_EMBEDDING_DIMENSIONS: ${{ vars.KA_EMBEDDING_DIMENSIONS || '1536' }}
+      KA_EMBEDDING_REVISION: ${{ vars.KA_EMBEDDING_REVISION || '1' }}
+      KA_CHAT_DEPLOYMENT: ${{ vars.KA_CHAT_DEPLOYMENT }}
+      KA_LIVEDOCS_BASE_URL: ${{ vars.KA_LIVEDOCS_BASE_URL }}
+      KA_REFRESH_REVISION: ${{ vars.KA_REFRESH_REVISION || '1' }}
+      CI_IMAGE: knowledge-assistant-api:refresh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - name: Select a proven LiveDocs publication and require successful API CI
+        id: source
+        env:
+          GH_TOKEN: ${{ secrets.LIVEDOCS_READ_TOKEN || github.token }}
+          REQUESTED_COMMIT: ${{ inputs.livedocs_commit }}
+        run: uv run python scripts/prepare-refresh.py select --livedocs-commit "$REQUESTED_COMMIT" --output artifacts/refresh/selection.json
+      - name: Download publication receipt
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.LIVEDOCS_READ_TOKEN || github.token }}
+          repository: MichalBoczula/ECommerceStore.LiveDocs
+          run-id: ${{ steps.source.outputs.run_id }}
+          artifact-ids: ${{ steps.source.outputs.artifact_id }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/livedocs-publication
+      - uses: actions/checkout@v4
+        with:
+          repository: MichalBoczula/ECommerceStore.LiveDocs
+          ref: ${{ steps.source.outputs.livedocs_sha }}
+          path: livedocs-source
+          sparse-checkout: manifests
+          persist-credentials: false
+          token: ${{ secrets.LIVEDOCS_READ_TOKEN || github.token }}
+      - name: Verify source/image identity and fingerprint refresh configuration
+        id: plan
+        run: |
+          uv run python scripts/prepare-refresh.py prepare \
+            --selection artifacts/refresh/selection.json \
+            --publication "$RUNNER_TEMP/livedocs-publication/image.json" \
+            --source livedocs-source --output artifacts/refresh/plan.json
+      - uses: actions/cache/restore@v4
+        id: cache
+        if: inputs.force_rebuild != true
+        with:
+          path: artifacts/refresh-completed
+          key: knowledge-handoff-v1-${{ steps.plan.outputs.release_id }}
+      - name: Verify unchanged handoff and immutable image availability
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: uv run python scripts/prepare-refresh.py cached --plan artifacts/refresh/plan.json --receipt artifacts/refresh-completed/release.json
+      - name: Require refresh credentials before corpus downloads or cloud work
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          LIVEDOCS_STORAGE_SAS_TOKEN: ${{ secrets.LIVEDOCS_STORAGE_SAS_TOKEN }}
+          KA_SEARCH_ADMIN_KEY: ${{ secrets.KA_SEARCH_ADMIN_KEY }}
+          KA_SEARCH_QUERY_KEY: ${{ secrets.KA_SEARCH_QUERY_KEY }}
+          KA_OPENAI_KEY: ${{ secrets.KA_OPENAI_KEY }}
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+        run: |
+          set -euo pipefail
+          for name in LIVEDOCS_STORAGE_SAS_TOKEN KA_SEARCH_ADMIN_KEY KA_SEARCH_QUERY_KEY KA_OPENAI_KEY DOCKER_USER DOCKER_TOKEN; do
+            test -n "${!name}" || { echo "Missing refresh secret: $name" >&2; exit 1; }
+          done
+      - name: Ingest the exact published manifests and private archives
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          LIVEDOCS_STORAGE_SAS_TOKEN: ${{ secrets.LIVEDOCS_STORAGE_SAS_TOKEN }}
+          LIVEDOCS_SHA: ${{ steps.source.outputs.livedocs_sha }}
+        run: |
+          uv run knowledge ingest --manifest livedocs-source/manifests/portal.json \
+            --projects livedocs-source/manifests/projects.json --manifest-commit "$LIVEDOCS_SHA" \
+            --cache "$RUNNER_TEMP/livedocs-cache" --download \
+            --livedocs-base-url "$KA_LIVEDOCS_BASE_URL" --output artifacts/active-corpus.json \
+            --report artifacts/refresh/ingestion-report.json
+      - name: Require reviewed offline Products evaluation before indexing
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          uv run knowledge evaluate --suite evaluation/products-v1.json \
+            --corpus artifacts/active-corpus.json --ingestion-report artifacts/refresh/ingestion-report.json \
+            --report artifacts/refresh/local-evaluation.json
+      - name: Plan and bound embedding work
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          MAX_INPUTS: ${{ vars.KA_REFRESH_MAX_INPUTS || '2000' }}
+          MAX_INPUT_BYTES: ${{ vars.KA_REFRESH_MAX_INPUT_BYTES || '8000000' }}
+          MAX_VECTOR_BYTES: ${{ vars.KA_REFRESH_MAX_VECTOR_BYTES || '40000000' }}
+        run: |
+          uv run knowledge plan-index --corpus artifacts/active-corpus.json \
+            --ingestion-report artifacts/refresh/ingestion-report.json --report artifacts/refresh/index-plan.json
+          uv run python scripts/prepare-refresh.py budget --index-plan artifacts/refresh/index-plan.json \
+            --max-inputs "$MAX_INPUTS" --max-input-bytes "$MAX_INPUT_BYTES" --max-vector-bytes "$MAX_VECTOR_BYTES"
+      - name: Complete indexing before image publication
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          KA_SEARCH_KEY: ${{ secrets.KA_SEARCH_ADMIN_KEY }}
+          KA_OPENAI_KEY: ${{ secrets.KA_OPENAI_KEY }}
+        run: |
+          uv run knowledge index --corpus artifacts/active-corpus.json \
+            --ingestion-report artifacts/refresh/ingestion-report.json --cache "$RUNNER_TEMP/embeddings" \
+            --report artifacts/refresh/index-report.json
+      - name: Evaluate actual hybrid retrieval using the query key
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          KA_SEARCH_KEY: ${{ secrets.KA_SEARCH_QUERY_KEY }}
+          KA_OPENAI_KEY: ${{ secrets.KA_OPENAI_KEY }}
+        run: |
+          uv run knowledge evaluate --suite evaluation/products-v1.json \
+            --corpus artifacts/active-corpus.json --ingestion-report artifacts/refresh/ingestion-report.json \
+            --retrieval-mode azure --generation-mode evidence --report artifacts/refresh/retrieval-evaluation.json
+      - name: Verify the first useful model answer and JSON example
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          KA_SEARCH_KEY: ${{ secrets.KA_SEARCH_QUERY_KEY }}
+          KA_OPENAI_KEY: ${{ secrets.KA_OPENAI_KEY }}
+        run: |
+          uv run knowledge evaluate --suite evaluation/products-v1.json \
+            --corpus artifacts/active-corpus.json --ingestion-report artifacts/refresh/ingestion-report.json \
+            --retrieval-mode azure --generation-mode azure --case-id products-01 \
+            --report artifacts/refresh/model-evaluation.json
+      - name: Verify matching corpus, profile and live evaluation receipts
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          uv run python scripts/prepare-refresh.py verify --plan artifacts/refresh/plan.json \
+            --corpus artifacts/active-corpus.json --ingestion-report artifacts/refresh/ingestion-report.json \
+            --index-report artifacts/refresh/index-report.json \
+            --retrieval-report artifacts/refresh/retrieval-evaluation.json --model-report artifacts/refresh/model-evaluation.json
+      - uses: docker/setup-buildx-action@v3
+        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Build one API image with the matching real corpus
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          RELEASE_ID: ${{ steps.plan.outputs.release_id }}
+          LIVEDOCS_SHA: ${{ steps.source.outputs.livedocs_sha }}
+        run: |
+          docker build --pull --build-arg CORPUS_FILE=artifacts/active-corpus.json \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.description=Knowledge Assistant with source-pinned LiveDocs corpus" \
+            --label "io.ecommerce.knowledge.release=$RELEASE_ID" \
+            --label "io.ecommerce.knowledge.livedocs=$LIVEDOCS_SHA" --tag "$CI_IMAGE" .
+      - name: Smoke-test the baked corpus and sourced offline answer
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: bash scripts/smoke-image.sh "$CI_IMAGE" artifacts/active-corpus.json
+      - name: Scan the candidate image
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.CI_IMAGE }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+      - name: Record the scanned image identity
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: echo "SCANNED_IMAGE_ID=$(docker image inspect --format '{{.Id}}' "$CI_IMAGE")" >> "$GITHUB_ENV"
+      - uses: docker/login-action@v3
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Publish the tested and scanned candidate without changing latest
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          REFRESH_RELEASE_ID: ${{ steps.plan.outputs.release_id }}
+        run: bash scripts/publish-refresh.sh "$CI_IMAGE"
+      - name: Write the Terraform handoff for the matching API and LiveDocs images
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          uv run python scripts/prepare-refresh.py handoff --plan artifacts/refresh/plan.json \
+            --corpus artifacts/active-corpus.json --ingestion-report artifacts/refresh/ingestion-report.json \
+            --index-report artifacts/refresh/index-report.json --retrieval-report artifacts/refresh/retrieval-evaluation.json \
+            --model-report artifacts/refresh/model-evaluation.json --image artifacts/refresh/image.json \
+            --output artifacts/refresh-completed/release.json
+      - uses: actions/cache/save@v4
+        if: steps.cache.outputs.cache-hit != 'true' && inputs.force_rebuild != true
+        with:
+          path: artifacts/refresh-completed
+          key: knowledge-handoff-v1-${{ steps.plan.outputs.release_id }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: knowledge-refresh-handoff
+          path: artifacts/refresh-completed/release.json
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: knowledge-refresh-reports
+          path: artifacts/refresh/
+          if-no-files-found: warn
+          retention-days: 14

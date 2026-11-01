@@ -119,3 +119,24 @@ def test_plan_and_uploader_must_use_the_same_embedding_profile(demo, cloud, tmp_
     with pytest.raises(ValueError, match="plan differs"):
         indexer(cloud).upload(plan, tmp_path)
     assert cloud.embeddings.requests == 0 and cloud.index.created == []
+
+
+def test_completed_snapshot_reuses_index_without_embedding_cache(demo, cloud, tmp_path):
+    plan = plan_index(demo.corpus, cloud.settings)
+    service = indexer(cloud)
+    service.upload(plan, tmp_path / "first-cache")
+    calls, uploads = cloud.embeddings.requests, len(cloud.search.uploads)
+    result = service.upload(plan, tmp_path / "empty-cache")
+    assert result["reusedCompletedSnapshot"] and result["embeddingRequests"] == 0
+    assert cloud.embeddings.requests == calls and len(cloud.search.uploads) == uploads
+
+
+def test_corrupt_completion_marker_does_not_authorize_reuse(demo, cloud, tmp_path):
+    plan = plan_index(demo.corpus, cloud.settings)
+    service = indexer(cloud)
+    service.upload(plan, tmp_path)
+    cloud.search.rows[manifest_key(plan.corpus_sha, plan.profile)]["chunkCount"] += 1
+    uploads = len(cloud.search.uploads)
+    with pytest.raises(ValueError, match="marker differs"):
+        service.upload(plan, tmp_path)
+    assert len(cloud.search.uploads) == uploads
