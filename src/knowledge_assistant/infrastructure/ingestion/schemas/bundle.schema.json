@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "project", "repository", "commitSha", "generatedAt", "workflowRunId", "files"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "project": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "repository": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
+    "commitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "generatedAt": {"type": "string", "format": "date-time"},
+    "workflowRunId": {"type": "integer", "minimum": 1},
+    "files": {
+      "type": "object", "minProperties": 1, "maxProperties": 50000,
+      "additionalProperties": {
+        "type": "object", "additionalProperties": false,
+        "required": ["sha256", "sizeBytes"],
+        "properties": {
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "sizeBytes": {"type": "integer", "minimum": 0, "maximum": 104857600}
+        }
+      }
+    }
+  }
+}
