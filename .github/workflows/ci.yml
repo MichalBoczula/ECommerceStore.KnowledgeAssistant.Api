@@ -100,9 +100,26 @@ jobs:
           path: artifacts/verification/api/
           if-no-files-found: warn
 
+  evaluation:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - name: Run offline evaluation regression smoke
+        run: VERIFY_SUMMARY_FILE="$GITHUB_STEP_SUMMARY" bash scripts/ci.sh evaluation
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evaluation-results
+          path: artifacts/verification/evaluation/
+          if-no-files-found: error
+
   quality-gate:
     if: always()
-    needs: [build, unit-tests, acceptance-tests, secret-scan, dependency-review]
+    needs: [build, unit-tests, acceptance-tests, evaluation, secret-scan, dependency-review]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -113,11 +130,12 @@ jobs:
           BUILD: ${{ needs.build.result }}
           UNIT: ${{ needs.unit-tests.result }}
           ACCEPTANCE: ${{ needs.acceptance-tests.result }}
+          EVALUATION: ${{ needs.evaluation.result }}
           SECRET_SCAN: ${{ needs.secret-scan.result }}
           DEPENDENCY_REVIEW: ${{ needs.dependency-review.result }}
         run: |
           set -euo pipefail
-          for job in BUILD UNIT ACCEPTANCE SECRET_SCAN; do
+          for job in BUILD UNIT ACCEPTANCE EVALUATION SECRET_SCAN; do
             if [[ "${!job}" != success ]]; then
               echo "$job must succeed; actual result: ${!job}" >&2
               exit 1

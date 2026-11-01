@@ -202,6 +202,20 @@ The first slice supports business explanations and request contracts. Exhaustive
 cross-service counts, binary attachment retrieval and multi-turn conversations are
 separate work. Top-K similarity results must never be presented as a complete inventory.
 
+## Answer-quality evaluation
+
+`knowledge evaluate` runs reviewed questions through the same retrieval, planning and
+assembly flow as the API. The repository includes 25 source-pinned Products questions
+and a separate four-case synthetic CI smoke suite. Reports check evidence scope,
+citations, documented rules, original contracts, example verification, missing information
+and expected-source recall. Offline modes are the explicit default; Azure modes are
+selected per run and support a case filter.
+
+The measured local/evidence Products baseline improved from 11/25 to 25/25 after
+operation selection and keyword retrieval fixes. Azure/model evaluation has not run.
+See [the evaluation guide](docs/answer-evaluation.md) for commands, source pins,
+measured results and the remaining human-review step.
+
 ## CI and Docker publication
 
 CI follows the storefront Web and Users pattern: dependency review on pull requests,

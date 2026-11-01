@@ -1,0 +1,212 @@
+{
+  "suiteId": "products-pinned-v1",
+  "suiteSha256": "605ccc5c6ad17af55adfc700750d78bd8be2717624ac3a3da2315e29cabf1592",
+  "suiteFileSha256": "7c40f6db91b5c0af2705aa3ff1e7b26f179e6551fb2c7faffb3ecb360766d1b8",
+  "corpusFileSha256": "d2483bd1627eddd08a3ac4c912e23239ffec88f4ad6fb1ec505eb25a098c8955",
+  "snapshotId": "v1-224872e33a099f7f2aa9",
+  "isDemo": false,
+  "sourcePins": [
+    {
+      "service": "products",
+      "commitSha": "ab8fe05e2fee4870c6b1255a8f4d6e5d49d90f5e",
+      "bundleSha256": "9625b79583bec33425fd2ca7c1cc43b0a4f323483698614534fbdcf0b25d5da6"
+    }
+  ],
+  "corpusDocuments": 189,
+  "answerMode": "evidence",
+  "retrievalMode": "local_keyword",
+  "maxCandidates": 12,
+  "total": 25,
+  "createdAt": "2026-11-01T20:31:37.272892+00:00",
+  "description": "Source-pinned Products-only local/evidence comparison. Same 189 documents and 25 questions; no cloud or model calls. Raw corpus/answers are not committed.",
+  "before": {
+    "implementationCommit": "405530e733f005ea986ac2ff411f5be7e7ef49e1",
+    "passed": 11,
+    "failed": 14,
+    "expectedSourceRecall": 0.84
+  },
+  "after": {
+    "implementation": "Task 6 changes in the commit containing this report",
+    "passed": 25,
+    "failed": 0,
+    "expectedSourceRecall": 1.0
+  },
+  "cases": [
+    {
+      "id": "products-01",
+      "beforeFailures": [
+        "status",
+        "section_types",
+        "rules",
+        "sources",
+        "retrieval",
+        "contracts"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-02",
+      "beforeFailures": [
+        "sources",
+        "retrieval",
+        "contracts"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-03",
+      "beforeFailures": [],
+      "afterFailures": []
+    },
+    {
+      "id": "products-04",
+      "beforeFailures": [],
+      "afterFailures": []
+    },
+    {
+      "id": "products-05",
+      "beforeFailures": [
+        "status",
+        "section_types",
+        "rules",
+        "sources",
+        "retrieval"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-06",
+      "beforeFailures": [],
+      "afterFailures": []
+    },
+    {
+      "id": "products-07",
+      "beforeFailures": [],
+      "afterFailures": []
+    },
+    {
+      "id": "products-08",
+      "beforeFailures": [],
+      "afterFailures": []
+    },
+    {
+      "id": "products-09",
+      "beforeFailures": [],
+      "afterFailures": []
+    },
+    {
+      "id": "products-10",
+      "beforeFailures": [],
+      "afterFailures": []
+    },
+    {
+      "id": "products-11",
+      "beforeFailures": [],
+      "afterFailures": []
+    },
+    {
+      "id": "products-12",
+      "beforeFailures": [
+        "sources",
+        "contracts"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-13",
+      "beforeFailures": [
+        "sources",
+        "contracts"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-14",
+      "beforeFailures": [
+        "sources",
+        "contracts"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-15",
+      "beforeFailures": [
+        "sources",
+        "contracts"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-16",
+      "beforeFailures": [
+        "status",
+        "section_types",
+        "sources",
+        "contracts"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-17",
+      "beforeFailures": [
+        "sources",
+        "contracts"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-18",
+      "beforeFailures": [
+        "sources",
+        "contracts"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-19",
+      "beforeFailures": [
+        "sources",
+        "contracts"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-20",
+      "beforeFailures": [
+        "status",
+        "sources",
+        "retrieval"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-21",
+      "beforeFailures": [],
+      "afterFailures": []
+    },
+    {
+      "id": "products-22",
+      "beforeFailures": [],
+      "afterFailures": []
+    },
+    {
+      "id": "products-23",
+      "beforeFailures": [],
+      "afterFailures": []
+    },
+    {
+      "id": "products-24",
+      "beforeFailures": [
+        "status"
+      ],
+      "afterFailures": []
+    },
+    {
+      "id": "products-25",
+      "beforeFailures": [
+        "status"
+      ],
+      "afterFailures": []
+    }
+  ]
+}

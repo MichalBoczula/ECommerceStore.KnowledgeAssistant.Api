@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "id": "synthetic-smoke-v1",
+  "description": "Synthetic CI smoke: evaluator/retrieval regression guard, not live retrieval or model quality.",
+  "isDemo": true,
+  "sourcePins": [
+    {
+      "service": "products",
+      "commitSha": "0000000000000000000000000000000000000000",
+      "bundleSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "cases": [
+    {
+      "id": "combined",
+      "question": "Explain mobile phone validation and give me the JSON request to create a mobile phone",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "validation",
+          "api_contract"
+        ],
+        "ruleTexts": [
+          "Required, nonempty text.",
+          "A number greater than zero.",
+          "Storage size and color are required."
+        ],
+        "rulesExact": true,
+        "contracts": [
+          {
+            "operationId": "createMobilePhone",
+            "method": "POST",
+            "path": "/mobile-phones",
+            "requireExample": true
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/validation-policies.json#entry-0",
+          "sources/openapi.json#/paths/~1mobile-phones/post"
+        ],
+        "allowedSourcePaths": [
+          "sources/validation-policies.json#entry-0",
+          "sources/openapi.json#/paths/~1mobile-phones/post"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "contract",
+      "question": "Show the createMobilePhone request contract",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "api_contract"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [
+          {
+            "operationId": "createMobilePhone",
+            "method": "POST",
+            "path": "/mobile-phones",
+            "requireExample": true
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones/post"
+        ],
+        "allowedSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones/post"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "unsupported-contract",
+      "question": "Show the teleportation warranty request contract",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "not_found"
+        ],
+        "sectionTypes": [],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [],
+        "requiredSourcePaths": [],
+        "allowedSourcePaths": [],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "unrelated",
+      "question": "How does lunar agriculture work on Ganymede?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "not_found"
+        ],
+        "sectionTypes": [],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [],
+        "requiredSourcePaths": [],
+        "allowedSourcePaths": [],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    }
+  ]
+}

@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 
 from knowledge_assistant.domain.models import Document
-from knowledge_assistant.domain.text import tokens
+from knowledge_assistant.domain.text import FORMAT_TERMS, tokens
 
 from ..contracts import Rule
 
@@ -51,14 +51,48 @@ def documented_example(payload: dict) -> bool:
     return bool(payload.get("hasDocumentedExample", payload.get("exampleRequest") is not None))
 
 
+def select_policies(question: str, documents: list[Document], contract: Document | None):
+    policies = [d for d in documents if d.kind == "validation" and policy_rules(d)]
+    named = [d for d in policies if d.title.casefold() in question.casefold()]
+    if named:
+        return named
+    if contract:
+        linked = [d for d in policies if contract.operation_id in d.payload.get("operationIds", [])]
+        if linked:
+            return linked
+    terms = tokens(question) - FORMAT_TERMS
+
+    def score(doc):
+        return len(
+            terms
+            & tokens(
+                doc.title + " " + " ".join(rule.description for rule in policy_rules(doc).values())
+            )
+        )
+
+    best = max((score(d) for d in policies), default=0)
+    return [d for d in policies if best > 0 and score(d) == best]
+
+
 def select_contract(question: str, documents: list[Document]) -> Document | None:
     """Extracted evidence view: select only an unambiguous documented operation."""
     candidates = [d for d in documents if d.kind == "api_contract"]
     words = tokens(question)
+    exact = [
+        d
+        for d in candidates
+        if d.operation_id
+        and re.search(
+            r"(?<![a-z0-9])" + re.escape(d.operation_id.casefold()) + r"(?![a-z0-9])",
+            question.casefold(),
+        )
+    ]
+    if exact:
+        return exact[0] if len(exact) == 1 else None
     methods = set()
     for hints, verbs in (
-        ({"create", "add", "new", "register"}, {"POST"}),
-        ({"update", "edit", "change"}, {"PUT", "PATCH"}),
+        ({"create", "add", "new", "register", "post", "filter"}, {"POST"}),
+        ({"update", "edit", "change", "put", "patch"}, {"PUT", "PATCH"}),
         ({"delete", "remove"}, {"DELETE"}),
         ({"get", "read", "list", "fetch"}, {"GET"}),
     ):
@@ -66,6 +100,33 @@ def select_contract(question: str, documents: list[Document]) -> Document | None
             methods.update(verbs)
     if methods:
         candidates = [d for d in candidates if d.payload.get("method") in methods]
+    topical = (
+        words
+        - FORMAT_TERMS
+        - {
+            "create",
+            "add",
+            "new",
+            "register",
+            "post",
+            "update",
+            "edit",
+            "change",
+            "put",
+            "patch",
+            "delete",
+            "remove",
+            "get",
+            "read",
+            "list",
+            "fetch",
+        }
+    )
+    candidates = [
+        d
+        for d in candidates
+        if topical & tokens(f"{d.title} {d.operation_id or ''} {d.payload.get('path', '')}")
+    ]
     if len(candidates) <= 1:
         return next(iter(candidates), None)
 

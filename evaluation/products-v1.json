@@ -1,0 +1,779 @@
+{
+  "schemaVersion": 1,
+  "id": "products-pinned-v1",
+  "description": "25 source-reviewed Products questions: phone/published hardware policies, original OpenAPI contracts, flows and unsupported requests. Expected facts come from pinned sources, not model answers. Semantic review is still required.",
+  "isDemo": false,
+  "sourcePins": [
+    {
+      "service": "products",
+      "commitSha": "ab8fe05e2fee4870c6b1255a8f4d6e5d49d90f5e",
+      "bundleSha256": "9625b79583bec33425fd2ca7c1cc43b0a4f323483698614534fbdcf0b25d5da6"
+    }
+  ],
+  "cases": [
+    {
+      "id": "products-01",
+      "question": "How does mobile phone validation work? Give me the JSON contract for creating a mobile phone.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "partial",
+          "answered"
+        ],
+        "sectionTypes": [
+          "validation",
+          "api_contract"
+        ],
+        "ruleTexts": [
+          "Common description cannot be null.",
+          "Name cannot be null or whitespace.",
+          "Description cannot be null or whitespace.",
+          "Brand cannot be null or whitespace.",
+          "Description2 cannot be null or whitespace.",
+          "Description3 cannot be null or whitespace.",
+          "Camera cannot be null or whitespace.",
+          "Mobile phone cannot be null."
+        ],
+        "rulesExact": true,
+        "contracts": [
+          {
+            "operationId": "CreateMobilePhone",
+            "method": "POST",
+            "path": "/mobile-phones",
+            "modelExampleRequired": true
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/validation-policies.json#/3",
+          "sources/openapi.json#/paths/~1mobile-phones/post"
+        ],
+        "allowedSourcePaths": [
+          "sources/validation-policies.json#/3",
+          "sources/openapi.json#/paths/~1mobile-phones/post"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-02",
+      "question": "Show the CreateMobilePhone request contract in JSON.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "partial",
+          "answered"
+        ],
+        "sectionTypes": [
+          "api_contract"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [
+          {
+            "operationId": "CreateMobilePhone",
+            "method": "POST",
+            "path": "/mobile-phones",
+            "modelExampleRequired": true
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones/post"
+        ],
+        "allowedSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones/post"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-03",
+      "question": "Explain the MobilePhonesValidationPolicy validation rules for name and brand.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "validation"
+        ],
+        "ruleTexts": [
+          "Common description cannot be null.",
+          "Name cannot be null or whitespace.",
+          "Description cannot be null or whitespace.",
+          "Brand cannot be null or whitespace.",
+          "Description2 cannot be null or whitespace.",
+          "Description3 cannot be null or whitespace.",
+          "Camera cannot be null or whitespace.",
+          "Mobile phone cannot be null."
+        ],
+        "rulesExact": true,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/validation-policies.json#/3"
+        ],
+        "allowedSourcePaths": [
+          "sources/validation-policies.json#/3"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-04",
+      "question": "What validation rules apply to Description2, Description3 and Camera?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "validation"
+        ],
+        "ruleTexts": [
+          "Common description cannot be null.",
+          "Name cannot be null or whitespace.",
+          "Description cannot be null or whitespace.",
+          "Brand cannot be null or whitespace.",
+          "Description2 cannot be null or whitespace.",
+          "Description3 cannot be null or whitespace.",
+          "Camera cannot be null or whitespace.",
+          "Mobile phone cannot be null."
+        ],
+        "rulesExact": true,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/validation-policies.json#/3"
+        ],
+        "allowedSourcePaths": [
+          "sources/validation-policies.json#/3"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-05",
+      "question": "What validation rules apply to a null mobile phone and common description?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "validation"
+        ],
+        "ruleTexts": [
+          "Common description cannot be null.",
+          "Name cannot be null or whitespace.",
+          "Description cannot be null or whitespace.",
+          "Brand cannot be null or whitespace.",
+          "Description2 cannot be null or whitespace.",
+          "Description3 cannot be null or whitespace.",
+          "Camera cannot be null or whitespace.",
+          "Mobile phone cannot be null."
+        ],
+        "rulesExact": true,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/validation-policies.json#/3"
+        ],
+        "allowedSourcePaths": [
+          "sources/validation-policies.json#/3"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-06",
+      "question": "Explain ElectronicDetailsValidationPolicy validation rules for CPU and GPU.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "partial"
+        ],
+        "sectionTypes": [
+          "validation"
+        ],
+        "ruleTexts": [
+          "CPU cannot be null or whitespace.",
+          "GPU cannot be null or whitespace.",
+          "Ram cannot be null or whitespace.",
+          "Storage cannot be null or whitespace.",
+          "Display type cannot be null or whitespace.",
+          "Battery type cannot be null or whitespace.",
+          "Refresh rate cannot be zero or below.",
+          "Screen size cannot be zero or below.",
+          "Width cannot be zero or below.",
+          "Height cannot be zero or below.",
+          "Battery capacity cannot be zero or below."
+        ],
+        "rulesExact": true,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/validation-policies.json#/1"
+        ],
+        "allowedSourcePaths": [
+          "sources/validation-policies.json#/1"
+        ],
+        "textFragments": [],
+        "limitationFragments": [
+          "no explicit operation link"
+        ]
+      }
+    },
+    {
+      "id": "products-07",
+      "question": "What validation rules apply to RAM, storage, display type and battery type?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "partial"
+        ],
+        "sectionTypes": [
+          "validation"
+        ],
+        "ruleTexts": [
+          "CPU cannot be null or whitespace.",
+          "GPU cannot be null or whitespace.",
+          "Ram cannot be null or whitespace.",
+          "Storage cannot be null or whitespace.",
+          "Display type cannot be null or whitespace.",
+          "Battery type cannot be null or whitespace.",
+          "Refresh rate cannot be zero or below.",
+          "Screen size cannot be zero or below.",
+          "Width cannot be zero or below.",
+          "Height cannot be zero or below.",
+          "Battery capacity cannot be zero or below."
+        ],
+        "rulesExact": true,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/validation-policies.json#/1"
+        ],
+        "allowedSourcePaths": [
+          "sources/validation-policies.json#/1"
+        ],
+        "textFragments": [],
+        "limitationFragments": [
+          "no explicit operation link"
+        ]
+      }
+    },
+    {
+      "id": "products-08",
+      "question": "What validation constraints apply to refresh rate, screen size, width, height and battery capacity?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "partial"
+        ],
+        "sectionTypes": [
+          "validation"
+        ],
+        "ruleTexts": [
+          "CPU cannot be null or whitespace.",
+          "GPU cannot be null or whitespace.",
+          "Ram cannot be null or whitespace.",
+          "Storage cannot be null or whitespace.",
+          "Display type cannot be null or whitespace.",
+          "Battery type cannot be null or whitespace.",
+          "Refresh rate cannot be zero or below.",
+          "Screen size cannot be zero or below.",
+          "Width cannot be zero or below.",
+          "Height cannot be zero or below.",
+          "Battery capacity cannot be zero or below."
+        ],
+        "rulesExact": true,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/validation-policies.json#/1"
+        ],
+        "allowedSourcePaths": [
+          "sources/validation-policies.json#/1"
+        ],
+        "textFragments": [],
+        "limitationFragments": [
+          "no explicit operation link"
+        ]
+      }
+    },
+    {
+      "id": "products-09",
+      "question": "Explain AmountValidationPolicy validation rules.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "validation"
+        ],
+        "ruleTexts": [
+          "Amount must be greater than zero."
+        ],
+        "rulesExact": true,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/validation-policies.json#/0"
+        ],
+        "allowedSourcePaths": [
+          "sources/validation-policies.json#/0"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-10",
+      "question": "Explain PaginationParametersValidationPolicy validation rules for page number and page size.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "validation"
+        ],
+        "ruleTexts": [
+          "Page number must be greater than zero.",
+          "Page size must be greater than zero."
+        ],
+        "rulesExact": true,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/validation-policies.json#/4"
+        ],
+        "allowedSourcePaths": [
+          "sources/validation-policies.json#/4"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-11",
+      "question": "Explain MobilePhoneFilterValidationPolicy validation rules for prices and brand.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "validation"
+        ],
+        "ruleTexts": [
+          "Minimal price must be greater than or equal to zero.",
+          "Maximal price must be greater than or equal to zero.",
+          "Minimal price must be lower than maximal price.",
+          "Brand must exist in MobilePhonesBrand enum."
+        ],
+        "rulesExact": true,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/validation-policies.json#/2"
+        ],
+        "allowedSourcePaths": [
+          "sources/validation-policies.json#/2"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-12",
+      "question": "Show the UpdateMobilePhone request contract in JSON.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "partial",
+          "answered"
+        ],
+        "sectionTypes": [
+          "api_contract"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [
+          {
+            "operationId": "UpdateMobilePhone",
+            "method": "PUT",
+            "path": "/mobile-phones/{id}",
+            "modelExampleRequired": true
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1{id}/put"
+        ],
+        "allowedSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1{id}/put"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-13",
+      "question": "Show the DeleteMobilePhone request schema.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "api_contract"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [
+          {
+            "operationId": "DeleteMobilePhone",
+            "method": "DELETE",
+            "path": "/mobile-phones/{id}",
+            "modelExampleRequired": false
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1{id}/delete"
+        ],
+        "allowedSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1{id}/delete"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-14",
+      "question": "Show the GetMobilePhoneById request schema.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "api_contract"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [
+          {
+            "operationId": "GetMobilePhoneById",
+            "method": "GET",
+            "path": "/mobile-phones/{id}",
+            "modelExampleRequired": false
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1{id}/get"
+        ],
+        "allowedSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1{id}/get"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-15",
+      "question": "Show the GetMobilePhonesByIds request schema.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "partial",
+          "answered"
+        ],
+        "sectionTypes": [
+          "api_contract"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [
+          {
+            "operationId": "GetMobilePhonesByIds",
+            "method": "POST",
+            "path": "/mobile-phones/by-ids",
+            "modelExampleRequired": false
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1by-ids/post"
+        ],
+        "allowedSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1by-ids/post"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-16",
+      "question": "Show the request JSON contract for filtering mobile phones.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "partial",
+          "answered"
+        ],
+        "sectionTypes": [
+          "api_contract"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [
+          {
+            "operationId": "GetFiltered MobilePhones",
+            "method": "POST",
+            "path": "/mobile-phones/filter",
+            "modelExampleRequired": true
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1filter/post"
+        ],
+        "allowedSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1filter/post"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-17",
+      "question": "Show the GetMobilePhoneHistory request contract.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "api_contract"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [
+          {
+            "operationId": "GetMobilePhoneHistory",
+            "method": "GET",
+            "path": "/mobile-phones/{id}/history",
+            "modelExampleRequired": false
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1{id}~1history/get"
+        ],
+        "allowedSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1{id}~1history/get"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-18",
+      "question": "Show the GetTopMobilePhones request schema.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "api_contract"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [
+          {
+            "operationId": "GetTopMobilePhones",
+            "method": "GET",
+            "path": "/mobile-phones/top",
+            "modelExampleRequired": false
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1top/get"
+        ],
+        "allowedSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones~1top/get"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-19",
+      "question": "Show the GetMobilePhones request schema.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "api_contract"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [
+          {
+            "operationId": "GetMobilePhones",
+            "method": "GET",
+            "path": "/mobile-phones",
+            "modelExampleRequired": false
+          }
+        ],
+        "requiredSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones/get"
+        ],
+        "allowedSourcePaths": [
+          "sources/openapi.json#/paths/~1mobile-phones/get"
+        ],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-20",
+      "question": "What does CreateMobilePhoneCommand say about hardware and money rules?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "explanation"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/flows.json#/0",
+          "sources/validation-policies.json#/3"
+        ],
+        "allowedSourcePaths": [
+          "sources/flows.json#/0",
+          "sources/validation-policies.json#/3"
+        ],
+        "textFragments": [
+          "no hardware or money rules are added"
+        ],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-21",
+      "question": "How does UpdateMobilePhoneCommand handle unchanged information?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "explanation"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/flows.json#/1"
+        ],
+        "allowedSourcePaths": [
+          "sources/flows.json#/1"
+        ],
+        "textFragments": [
+          "without writing history"
+        ],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-22",
+      "question": "How does DeleteMobilePhoneCommand handle an already inactive phone?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "explanation"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/flows.json#/2"
+        ],
+        "allowedSourcePaths": [
+          "sources/flows.json#/2"
+        ],
+        "textFragments": [
+          "already inactive"
+        ],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-23",
+      "question": "What does GetMobilePhoneHistoryQuery do before looking up the phone?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered"
+        ],
+        "sectionTypes": [
+          "explanation"
+        ],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [],
+        "requiredSourcePaths": [
+          "sources/flows.json#/5"
+        ],
+        "allowedSourcePaths": [
+          "sources/flows.json#/5"
+        ],
+        "textFragments": [
+          "before looking up the phone"
+        ],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-24",
+      "question": "Show the teleportation warranty request contract.",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "not_found"
+        ],
+        "sectionTypes": [],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [],
+        "requiredSourcePaths": [],
+        "allowedSourcePaths": [],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    },
+    {
+      "id": "products-25",
+      "question": "How does lunar agriculture work on Ganymede?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "not_found"
+        ],
+        "sectionTypes": [],
+        "ruleTexts": [],
+        "rulesExact": false,
+        "contracts": [],
+        "requiredSourcePaths": [],
+        "allowedSourcePaths": [],
+        "textFragments": [],
+        "limitationFragments": []
+      }
+    }
+  ]
+}
