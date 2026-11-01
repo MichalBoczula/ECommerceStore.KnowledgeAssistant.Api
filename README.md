@@ -32,9 +32,12 @@ not change the deployed documentation snapshot.
 ```bash
 uv run knowledge ingest \
   --manifest /path/to/ECommerceStore.LiveDocs/manifests/portal.json \
+  --projects /path/to/ECommerceStore.LiveDocs/manifests/projects.json \
+  --manifest-commit FULL_LIVEDOCS_COMMIT_SHA \
   --cache .cache/livedocs --download \
   --livedocs-base-url https://YOUR-LIVEDOCS-HOST \
-  --output artifacts/active-corpus.json
+  --output artifacts/active-corpus.json \
+  --report artifacts/ingestion-report.json
 ```
 
 The downloader uses Azure credentials (`az login` locally) or the existing
@@ -49,6 +52,14 @@ metadata/attachment references. Large binary attachments remain in the archive.
 Local OpenAPI references are resolved; external references must be bundled first.
 Failed executions remain execution evidence, distinct from expected BDD behavior.
 A development version such as `v1` gets a new snapshot ID when its selected inputs change.
+
+The report records per-service source commits, archive and source-file hashes, policy/flow
+counts, expanded scenarios, execution statuses, exact execution matches and unresolved
+operation links. Individual descriptors are adapted from each producer's source format;
+published standalone policies are distinguished from policies explicitly linked to an
+operation. An execution passing does not establish that every published policy runs.
+`--strict-links` rejects any reconciliation warning. Failed ingestion leaves the prior
+corpus/report untouched. See [the ingestion runbook and pinned-source audit](docs/livedocs-ingestion.md).
 
 ## Azure Search and model synthesis
 

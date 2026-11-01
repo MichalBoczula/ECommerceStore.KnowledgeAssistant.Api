@@ -18,7 +18,7 @@ def demo():
 
 @pytest.fixture
 def bundle_factory(tmp_path, demo):
-    def build(overrides=None, extras=None):
+    def build(overrides=None, extras=None, metadata_overrides=None):
         files = {**demo.files, **(overrides or {})}
         metadata = {
             "schemaVersion": 1,
@@ -32,6 +32,7 @@ def bundle_factory(tmp_path, demo):
                 for name, data in files.items()
             },
         }
+        metadata.update(metadata_overrides or {})
         path = tmp_path / "bundle.zip"
         with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
             for name, data in files.items():

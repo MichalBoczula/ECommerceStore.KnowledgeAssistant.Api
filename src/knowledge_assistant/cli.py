@@ -1,12 +1,15 @@
 import argparse
 import json
-from collections import Counter
+import re
 from pathlib import Path
+from zipfile import BadZipFile
 
 from .application.contracts import Answer
 from .domain.models import Corpus
 from .infrastructure.configuration.settings import Settings
+from .infrastructure.ingestion.json_source import read
 from .infrastructure.ingestion.livedocs import ingest_manifest
+from .infrastructure.ingestion.publication import publish_import
 from .infrastructure.retrieval.azure_retriever import AzureRetriever
 
 
@@ -15,10 +18,16 @@ def main() -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     ingest = commands.add_parser("ingest")
     ingest.add_argument("--manifest", type=Path, required=True)
+    ingest.add_argument("--projects", type=Path, required=True)
+    ingest.add_argument("--manifest-commit", help="Exact LiveDocs Git commit for the two manifests")
     ingest.add_argument("--cache", type=Path, default=Path(".cache/livedocs"))
     ingest.add_argument("--version")
     ingest.add_argument("--download", action="store_true")
     ingest.add_argument("--output", type=Path, default=Path("artifacts/corpus.json"))
+    ingest.add_argument("--report", type=Path, default=Path("artifacts/ingestion-report.json"))
+    ingest.add_argument(
+        "--strict-links", action="store_true", help="Fail on reconciliation warnings"
+    )
     ingest.add_argument("--livedocs-base-url", default="")
     index = commands.add_parser("index")
     index.add_argument("--corpus", type=Path, required=True)
@@ -35,27 +44,46 @@ def main() -> None:
         )
         return
     if args.command == "ingest":
-        corpus = ingest_manifest(
-            json.loads(args.manifest.read_text()),
-            args.cache,
-            args.version,
-            args.download,
-            args.livedocs_base_url,
-        )
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        temporary = args.output.with_suffix(".partial")
-        data = corpus.model_dump_json(by_alias=True, indent=2)
-        temporary.write_text(data)
-        temporary.replace(args.output)
+        if args.manifest_commit and not re.fullmatch(r"[0-9a-f]{40}", args.manifest_commit):
+            parser.error("--manifest-commit must be a full lowercase Git SHA")
+        inputs = {args.manifest.resolve(), args.projects.resolve()}
+        outputs = {args.output.resolve(), args.report.resolve()}
+        if len(outputs) != 2 or inputs & outputs:
+            parser.error("Corpus, report and input manifests must use different paths")
+        try:
+            services = []
+            corpus = ingest_manifest(
+                read(args.manifest),
+                args.cache,
+                args.version,
+                args.download,
+                args.livedocs_base_url,
+                registry=read(args.projects),
+                reports=services,
+            )
+            if args.strict_links and any(s["warnings"] for s in services):
+                raise ValueError(
+                    "Strict reconciliation failed; corpus and report were not published"
+                )
+            report = publish_import(
+                corpus, services, args.output, args.report, args.manifest_commit
+            )
+        except (ValueError, OSError, KeyError, TypeError, BadZipFile) as error:
+            # Avoid tracebacks containing source data, private paths or credentials.
+            if type(error) is ValueError:
+                parser.exit(1, f"Ingestion failed: {error}\n")
+            parser.exit(1, "Ingestion failed: unreadable or invalid documentation input\n")
         print(
             json.dumps(
                 {
-                    "snapshotId": corpus.snapshot_id,
-                    "documents": len(corpus.documents),
-                    "kinds": dict(Counter(d.kind for d in corpus.documents)),
-                    "corpusBytes": len(data.encode()),
-                    "textBytes": sum(len(d.content.encode()) for d in corpus.documents),
-                    "note": "Source bytes are not Azure index storage usage.",
+                    k: report[k]
+                    for k in (
+                        "snapshotId",
+                        "documents",
+                        "documentsByKind",
+                        "corpusBytes",
+                        "warnings",
+                    )
                 },
                 indent=2,
             )

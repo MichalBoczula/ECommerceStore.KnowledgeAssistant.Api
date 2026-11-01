@@ -6,12 +6,24 @@ import re
 import stat
 import zipfile
 from pathlib import Path, PurePosixPath
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
+from gherkin.errors import CompositeParserException
 from gherkin.parser import Parser
 from gherkin.pickles.compiler import Compiler
 
 from knowledge_assistant.domain.models import Corpus, Document, Source
+
+from .json_source import loads
+from .relationships import relate
+from .reporting import bundle_report
+from .structured import entries, validation_rules
+from .validation import (
+    registered_repository,
+    select_projects,
+    validate_archive_url,
+    validate_schema,
+)
 
 MAX_ARCHIVE = 100 * 1024 * 1024
 MAX_EXPANDED = 500 * 1024 * 1024
@@ -25,7 +37,9 @@ def canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
 
 
-def load_bundle(path: Path, reference: dict) -> tuple[dict, dict[str, bytes]]:
+def load_bundle(
+    path: Path, reference: dict, repository: str | None = None
+) -> tuple[dict, dict[str, bytes]]:
     if path.stat().st_size > MAX_ARCHIVE:
         raise ValueError("Archive exceeds the LiveDocs compressed size limit")
     if path.stat().st_size != reference["artifact"]["sizeBytes"]:
@@ -40,6 +54,7 @@ def load_bundle(path: Path, reference: dict) -> tuple[dict, dict[str, bytes]]:
         names: set[str] = set()
         for info in infos:
             name = info.filename
+            safe_member(name)
             parts = PurePosixPath(name).parts
             if (
                 not parts
@@ -55,9 +70,12 @@ def load_bundle(path: Path, reference: dict) -> tuple[dict, dict[str, bytes]]:
             names.add(name)
             if not info.is_dir():
                 files[name] = archive.read(info)
-    metadata = json.loads(files.pop("bundle.json"))
-    if metadata.get("schemaVersion") != 1:
-        raise ValueError("Unsupported bundle schema version")
+    if "bundle.json" not in files:
+        raise ValueError("Missing bundle inventory")
+    metadata = loads(files.pop("bundle.json"))
+    validate_schema(metadata, "bundle")
+    if repository is not None and metadata["repository"] != repository:
+        raise ValueError("Bundle repository differs from its LiveDocs registration")
     for key in ("project", "commitSha", "workflowRunId", "generatedAt"):
         if metadata[key] != reference[key]:
             raise ValueError(f"Bundle identity mismatch: {key}")
@@ -80,6 +98,35 @@ def load_bundle(path: Path, reference: dict) -> tuple[dict, dict[str, bytes]]:
     if not any(p.startswith("bdd/") and p.endswith(".feature") for p in files):
         raise ValueError("No BDD feature files")
     return metadata, files
+
+
+def check_attachments(value: object, files: dict[str, bytes]) -> None:
+    if isinstance(value, dict):
+        for attachment in value.get("attachments", []) or []:
+            source = attachment.get("source", "")
+            safe_member(source)
+            if "allure-results/" + source not in files:
+                raise ValueError("Missing Allure attachment")
+        for child in value.values():
+            check_attachments(child, files)
+    elif isinstance(value, list):
+        for child in value:
+            check_attachments(child, files)
+
+
+def safe_member(name: str) -> None:
+    path = PurePosixPath(name)
+    if (
+        not name
+        or not path.parts
+        or "//" in name
+        or "\\" in name
+        or ":" in name
+        or path.is_absolute()
+        or ".." in path.parts
+        or str(path) != name.rstrip("/")
+    ):
+        raise ValueError("Unsafe archive entry or attachment reference")
 
 
 def resolve_local_refs(value: object, root: dict, seen: frozenset[str] = frozenset()) -> object:
@@ -111,6 +158,7 @@ def documents_from_bundle(
     base_url: str = "",
 ) -> list[Document]:
     documents: list[Document] = []
+    execution_ids: set[str] = set()
     service = metadata["project"]
 
     def add(
@@ -131,8 +179,21 @@ def documents_from_bundle(
             commit_sha=metadata["commitSha"],
             bundle_sha256=bundle_sha,
             title=title,
-            url=(f"{base_url.rstrip('/')}/livedoc/{version}/{service}/" if base_url else None),
+            url=(
+                f"{base_url.rstrip('/')}/livedoc/{version}/{service}/"
+                + quote(path.split("#", 1)[0].removeprefix("sources/"), safe="/")
+                if base_url
+                else None
+            ),
         )
+        payload["provenance"] = {
+            "repository": metadata.get("repository"),
+            "workflowRunId": metadata.get("workflowRunId"),
+            "generatedAt": metadata.get("generatedAt"),
+            "sourceFileSha256": metadata.get("files", {})
+            .get(path.split("#", 1)[0], {})
+            .get("sha256"),
+        }
         documents.append(
             Document(
                 id="d-" + identity,
@@ -148,9 +209,46 @@ def documents_from_bundle(
 
     for path, content in sorted(files.items()):
         if path.startswith("bdd/") and path.endswith(".feature"):
-            ast = Parser().parse(content.decode("utf-8-sig"))
+            try:
+                ast = Parser().parse(content.decode("utf-8-sig"))
+            except CompositeParserException:
+                raise ValueError("Invalid Gherkin feature source") from None
+            definitions, examples = {}, {}
+
+            def collect(children, definitions=definitions, examples=examples):
+                for child in children:
+                    if "rule" in child:
+                        collect(child["rule"]["children"])
+                    if "scenario" in child:
+                        scenario = child["scenario"]
+                        definitions[scenario["id"]] = scenario
+                        for table in scenario.get("examples", []):
+                            headers = [
+                                c["value"] for c in table.get("tableHeader", {}).get("cells", [])
+                            ]
+                            for row in table.get("tableBody", []):
+                                examples[row["id"]] = {
+                                    "values": dict(
+                                        zip(
+                                            headers, [c["value"] for c in row["cells"]], strict=True
+                                        )
+                                    ),
+                                    "line": row["location"]["line"],
+                                }
+
+            collect(ast["feature"]["children"])
             pickles = Compiler().compile({**ast, "uri": path})
             for index, case in enumerate(pickles):
+                definition = next(definitions[x] for x in case["astNodeIds"] if x in definitions)
+                example = next((examples[x] for x in case["astNodeIds"] if x in examples), {})
+                values = example.get("values", {})
+                scenario_ids = [
+                    v for k, v in values.items() if k.casefold() in {"scenarioid", "caseid"}
+                ]
+                # Payments publishes the stable case ID at the start of the scenario title.
+                payment_id = re.match(r"^(PAY[0-9]+-[0-9]+)\b", case["name"])
+                if payment_id:
+                    scenario_ids.append(payment_id[1])
                 steps = case["steps"]
                 text = "\n".join(
                     step["text"]
@@ -162,6 +260,13 @@ def documents_from_bundle(
                     for step in steps
                 )
                 tags = [tag["name"] for tag in case.get("tags", [])]
+                for tag in tags:
+                    label, separator, value = tag.removeprefix("@").partition(":")
+                    if separator and label.casefold() in {
+                        "allure.label.scenarioid",
+                        "allure.label.caseid",
+                    }:
+                        scenario_ids.append(value)
                 # Compiled pickles expand every outline row, backgrounds and data tables.
                 case_key = digest(canonical([case["name"], text, index]).encode())[:20]
                 add(
@@ -175,23 +280,49 @@ def documents_from_bundle(
                         "tags": tags,
                         "exampleOrdinal": index,
                         "featurePath": path,
+                        "featureName": ast["feature"]["name"],
+                        "scenarioName": definition["name"],
+                        "scenarioLine": definition["location"]["line"],
+                        "exampleValues": values,
+                        "exampleLine": example.get("line"),
+                        "scenarioIds": sorted(
+                            set(scenario_ids + [t.removeprefix("@") for t in tags])
+                        ),
                     },
                     tags=tags,
                 )
         if path.startswith("allure-results/") and path.endswith("-result.json"):
-            result = json.loads(content)
-
-            def check_attachments(node: dict) -> None:
-                for attachment in node.get("attachments", []):
-                    source = attachment["source"]
-                    if PurePosixPath(source).name != source:
-                        raise ValueError("Unsafe Allure attachment reference")
-                    if f"allure-results/{source}" not in files:
-                        raise ValueError("Missing Allure attachment")
-                for step in node.get("steps", []):
-                    check_attachments(step)
-
-            check_attachments(result)
+            result = loads(content)
+            if not isinstance(result, dict):
+                raise ValueError("Invalid Allure execution source")
+            check_attachments(result, files)
+            for key in ("labels", "parameters"):
+                records = result.get(key) or []
+                if not isinstance(records, list) or any(
+                    not isinstance(record, dict)
+                    or not isinstance(record.get("name"), str)
+                    or not isinstance(record.get("value"), str)
+                    for record in records
+                ):
+                    raise ValueError("Invalid Allure labels or parameters")
+            if not result.get("uuid") or result.get("status") not in {
+                "passed",
+                "failed",
+                "broken",
+                "skipped",
+                "unknown",
+            }:
+                raise ValueError("Incomplete Allure execution identity/status")
+            if result["uuid"] in execution_ids:
+                raise ValueError("Duplicate Allure execution identity")
+            execution_ids.add(result["uuid"])
+            result["scenarioIds"] = sorted(
+                {
+                    label["value"]
+                    for label in result.get("labels", []) or []
+                    if label.get("name") in {"scenarioId", "caseId"}
+                }
+            )
             add(
                 "execution",
                 result.get("name", path),
@@ -206,18 +337,28 @@ def documents_from_bundle(
                 ),
                 result,
             )
+        if path.startswith("allure-results/") and path.endswith("-container.json"):
+            check_attachments(loads(content), files)
     if not any(d.kind == "execution" for d in documents):
         raise ValueError("No Allure test results")
 
-    spec = json.loads(files["sources/openapi.json"])
-    if not str(spec.get("openapi", "")).startswith("3.") or "paths" not in spec:
+    spec = loads(files["sources/openapi.json"])
+    if (
+        not isinstance(spec, dict)
+        or not str(spec.get("openapi", "")).startswith("3.")
+        or not isinstance(spec.get("paths"), dict)
+    ):
         raise ValueError("An OpenAPI 3 document is required")
+    operation_ids = set()
     for path, raw_item in spec["paths"].items():
         item = resolve_local_refs(raw_item, spec)
         for method, operation in item.items():
             if method.lower() not in {"get", "post", "put", "patch", "delete", "head", "options"}:
                 continue
             operation_id = operation.get("operationId", f"{method.upper()} {path}")
+            if operation_id in operation_ids:
+                raise ValueError("Duplicate OpenAPI operation identity")
+            operation_ids.add(operation_id)
             body = operation.get("requestBody", {})
             media = body.get("content", {})
             media_type = (
@@ -234,7 +375,16 @@ def documents_from_bundle(
                     ),
                     None,
                 )
+            raw_operation = (
+                raw_item.get(method, operation) if isinstance(raw_item, dict) else operation
+            )
+            raw_content = (
+                raw_operation.get("requestBody", {}).get("content", {}).get(media_type, {})
+            )
             payload = {
+                "rawRequestSchema": raw_content.get("schema", {}),
+                "sourceOperation": raw_operation,
+                "hasDocumentedExample": "example" in definition or bool(definition.get("examples")),
                 "method": method.upper(),
                 "path": path,
                 "operationId": operation_id,
@@ -262,21 +412,38 @@ def documents_from_bundle(
         ("flows", "flow"),
         ("operation-links", "operation_links"),
     ):
-        value = json.loads(files[f"sources/{filename}.json"])
-        entries = value if isinstance(value, list) else [value]
-        for index, entry in enumerate(entries):
-            title = (
-                entry.get("name") or entry.get("title") or entry.get("id")
-                if isinstance(entry, dict)
-                else None
-            ) or f"{filename} {index + 1}"
+        value = loads(files[f"sources/{filename}.json"])
+        for entry in entries(value, kind):
+            normalized_rules = validation_rules(entry.value) if kind == "validation" else []
+            payload = {
+                "value": {**entry.value, "name": entry.title, "rules": normalized_rules}
+                if kind == "validation"
+                else entry.value,
+                "original": entry.value,
+                "aliases": sorted(entry.aliases),
+                "sourceIdentity": entry.identity,
+            }
+            if kind == "validation":
+                payload["normalizedRules"] = normalized_rules
             add(
                 kind,
-                str(title),
-                f"sources/{filename}.json#entry-{index}",
-                json.dumps(entry, ensure_ascii=False, indent=2),
-                {"value": entry},
+                entry.title,
+                f"sources/{filename}.json#{entry.pointer}",
+                entry.title + "\n" + json.dumps(entry.value, ensure_ascii=False, indent=2),
+                payload,
+                operation_id=entry.value.get("operationId") if kind == "operation_links" else None,
             )
+        if kind == "operation_links" and isinstance(value, dict) and "operations" in value:
+            registry = {k: v for k, v in value.items() if k != "operations"}
+            if registry:
+                add(
+                    kind,
+                    "Documentation registry",
+                    f"sources/{filename}.json",
+                    json.dumps(registry, ensure_ascii=False, indent=2),
+                    {"value": registry},
+                )
+    relate(documents)
     return documents
 
 
@@ -284,19 +451,12 @@ def download_bundle(reference: dict, cache: Path) -> Path:
     """Only exact HTTPS Azure archive URLs from the trusted manifest; no arbitrary fetcher."""
     import os
 
+    from azure.core.exceptions import AzureError
     from azure.identity import DefaultAzureCredential
     from azure.storage.blob import BlobClient
 
+    validate_archive_url(reference["artifact"]["url"])
     url = urlparse(reference["artifact"]["url"])
-    if (
-        url.scheme != "https"
-        or not url.hostname
-        or not url.hostname.endswith(".blob.core.windows.net")
-        or not url.path.startswith("/livedocs/reports/")
-        or url.query
-        or url.fragment
-    ):
-        raise ValueError("Expected a credential-free LiveDocs Azure Blob URL")
     cache.mkdir(parents=True, exist_ok=True)
     target = cache / (reference["artifact"]["sha256"] + ".zip")
     if target.exists():
@@ -317,6 +477,10 @@ def download_bundle(reference: dict, cache: Path) -> Path:
         temporary.write_bytes(data)
         temporary.replace(target)
         return target
+    except AzureError:
+        raise ValueError(
+            "Cannot download the pinned LiveDocs bundle. Check Blob read access and credentials."
+        ) from None
     finally:
         if not isinstance(credential, str):
             credential.close()
@@ -328,16 +492,17 @@ def ingest_manifest(
     version: str | None = None,
     download: bool = False,
     base_url: str = "",
+    registry: dict | None = None,
+    reports: list[dict] | None = None,
 ) -> Corpus:
-    if manifest.get("schemaVersion") != 1:
-        raise ValueError("Unsupported portal schema version")
-    selected_version = version or manifest["latestVersion"]
-    selected = next((v for v in manifest["versions"] if v["version"] == selected_version), None)
-    if not selected or not selected["projects"]:
-        raise ValueError("Selected version is empty or does not exist")
-    projects = selected["projects"]
-    if len({p["project"] for p in projects}) != len(projects):
-        raise ValueError("Duplicate projects in selected snapshot")
+    selected_version, projects = select_projects(manifest, version)
+    # Verify every registration before making any network request.
+    repositories = {
+        p["project"]: registered_repository(registry, p["project"])
+        if registry is not None
+        else None
+        for p in projects
+    }
     snapshot_hash = digest(canonical(sorted(projects, key=lambda p: p["project"])).encode())
     snapshot_id = f"{selected_version}-{snapshot_hash[:20]}"
     documents = []
@@ -347,17 +512,20 @@ def ingest_manifest(
             if download
             else cache / (reference["artifact"]["sha256"] + ".zip")
         )
-        metadata, files = load_bundle(archive, reference)
-        documents.extend(
-            documents_from_bundle(
-                metadata,
-                files,
-                snapshot_id,
-                reference["artifact"]["sha256"],
-                selected_version,
-                base_url,
-            )
+        metadata, files = load_bundle(archive, reference, repositories[reference["project"]])
+        imported = documents_from_bundle(
+            metadata,
+            files,
+            snapshot_id,
+            reference["artifact"]["sha256"],
+            selected_version,
+            base_url,
         )
+        documents.extend(imported)
+        if reports is not None:
+            reports.append(bundle_report(metadata, reference, imported))
+    if len({d.id for d in documents}) != len(documents):
+        raise ValueError("Ingestion produced duplicate document identities")
     return Corpus(
         snapshot_id=snapshot_id,
         version=selected_version,
