@@ -108,10 +108,19 @@ step: only point a running API/image to the corpus after the entire upload succe
 Failed batches stop publication; no automatic paid tier or active-snapshot switch.
 
 The model produces a Pydantic-validated section plan referencing retrieved document
-IDs. The server rejects unknown citations and hydrates contracts from the original
-OpenAPI artifact. Documented/generated examples are schema checked; a failing generated
-example is omitted. Schema validation does not prove all business rules or API execution.
-Recursive schemas retain references plus `referenceSchemas` for validation.
+IDs and documented rule IDs. It does not author validation rules or replace contract
+JSON: the server hydrates both from the original evidence and enforces validation before
+contract sections. Multiple selected policies share one validation section with per-rule
+citations. Missing parts remain explicit partial answers. Published standalone policies
+are distinguished from operation links and runtime execution evidence.
+
+Model input is a bounded catalog, rather than repeated full payloads. Unsupported rule,
+source or document references fail verification. Refused, incomplete and unparseable
+model responses use safe Problem Details without falling back to demo data.
+Documented/generated examples are checked offline against their request schemas and
+local `referenceSchemas`; failing generated examples are omitted. JSON `null` examples
+retain their documented/generated origin. Schema validity does not establish business-rule
+compliance or successful API execution. See [structured answers](docs/structured-answers.md).
 
 ## Layers
 

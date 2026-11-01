@@ -366,15 +366,12 @@ def documents_from_bundle(
             )
             definition = media.get(media_type, {})
             example = definition.get("example")
-            if example is None:
-                example = next(
-                    (
-                        e["value"]
-                        for e in definition.get("examples", {}).values()
-                        if isinstance(e, dict) and "value" in e
-                    ),
-                    None,
-                )
+            available = "example" in definition
+            if not available:
+                for entry in definition.get("examples", {}).values():
+                    if isinstance(entry, dict) and "value" in entry:
+                        example, available = entry["value"], True
+                        break
             raw_operation = (
                 raw_item.get(method, operation) if isinstance(raw_item, dict) else operation
             )
@@ -384,7 +381,7 @@ def documents_from_bundle(
             payload = {
                 "rawRequestSchema": raw_content.get("schema", {}),
                 "sourceOperation": raw_operation,
-                "hasDocumentedExample": "example" in definition or bool(definition.get("examples")),
+                "hasDocumentedExample": available,
                 "method": method.upper(),
                 "path": path,
                 "operationId": operation_id,

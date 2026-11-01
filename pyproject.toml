@@ -7,7 +7,7 @@ dependencies = [
   "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "pydantic-settings>=2.8,<3",
   "azure-search-documents>=11.6,<12", "azure-identity>=1.21,<2",
   "azure-storage-blob>=12.25,<13", "openai>=2,<3", "gherkin-official>=32,<40",
-  "jsonschema>=4.23,<5", "openapi-schema-validator>=0.6,<1",
+  "jsonschema>=4.23,<5", "openapi-schema-validator>=0.6,<1", "referencing>=0.36,<1",
 ]
 
 [dependency-groups]

@@ -339,3 +339,41 @@ def test_contract_retains_raw_refs_and_resolved_schema_without_inventing_example
     assert contract.payload["requestSchema"]["required"] == ["name"]
     assert contract.payload["exampleRequest"] is None
     assert contract.payload["hasDocumentedExample"] is False
+
+
+@pytest.mark.parametrize(
+    "media,available",
+    [
+        ({"example": None}, True),
+        ({"examples": {"named": {"value": None}}}, True),
+        ({"examples": {"named": {"summary": "No example value was supplied"}}}, False),
+        ({"example": None, "examples": {"named": {"value": {"name": "Other"}}}}, True),
+    ],
+)
+def test_explicit_null_is_an_example_but_description_only_is_not(bundle_factory, media, available):
+    docs, _, _ = imported(
+        bundle_factory,
+        {
+            "sources/openapi.json": {
+                "openapi": "3.1.0",
+                "paths": {
+                    "/phones": {
+                        "post": {
+                            "operationId": "createMobilePhone",
+                            "requestBody": {
+                                "content": {
+                                    "application/json": {
+                                        "schema": {"type": ["object", "null"]},
+                                        **media,
+                                    }
+                                }
+                            },
+                        }
+                    }
+                },
+            }
+        },
+    )
+    contract = next(d for d in docs if d.kind == "api_contract")
+    assert contract.payload["exampleRequest"] is None
+    assert contract.payload["hasDocumentedExample"] is available
