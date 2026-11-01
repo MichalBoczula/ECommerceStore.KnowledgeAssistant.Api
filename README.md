@@ -175,6 +175,10 @@ local image for fixable high/critical vulnerabilities, then publishes the same i
 after a successful push to `main`. Pull requests build and scan without Docker Hub login
 or publishing. Test results are uploaded as JUnit artifacts, including on failures.
 
+Enable **Dependency graph** in this repository's **Settings → Advanced Security →
+Supply chain security** before running the PR checks. GitHub dependency review requires
+that setting; the quality gate fails if dependency review is unavailable or fails.
+
 Configure these existing repository Actions secrets:
 
 - `DOCKER_USER`: Docker Hub account with push access to `mb0101/ecommerce-store-knowledge-assistant-api`.
