@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-command="${1:?Usage: scripts/ci.sh source|build|format|contract|test SUITE}"
+command="${1:?Usage: scripts/ci.sh source|build|format|contract|evaluation|test SUITE}"
 case "$command" in
   source)
     git diff --check
@@ -17,6 +17,17 @@ case "$command" in
     uv run knowledge export-contract
     git diff --exit-code HEAD -- contracts/
     test -z "$(git ls-files --others --exclude-standard -- contracts/)"
+    ;;
+  evaluation)
+    report_dir="artifacts/verification/evaluation"
+    status=0
+    uv run knowledge evaluate --suite evaluation/demo-smoke.json \
+      --corpus examples/demo-corpus.json --allow-demo \
+      --report "$report_dir/results.json" --summary "$report_dir/summary.md" || status=$?
+    if [[ -f "$report_dir/summary.md" && -n "${VERIFY_SUMMARY_FILE:-}" ]]; then
+      cat "$report_dir/summary.md" >> "$VERIFY_SUMMARY_FILE"
+    fi
+    exit "$status"
     ;;
   test)
     suite="${2:?Expected domain, application, infrastructure or api}"

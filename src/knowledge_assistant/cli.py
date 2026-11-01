@@ -19,7 +19,9 @@ from .infrastructure.retrieval.indexing_io import verified_corpus, write_report
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Versioned LiveDocs ingestion and indexing")
+    parser = argparse.ArgumentParser(
+        description="Versioned LiveDocs ingestion, indexing and evaluation"
+    )
     commands = parser.add_subparsers(dest="command", required=True)
     ingest = commands.add_parser("ingest")
     ingest.add_argument("--manifest", type=Path, required=True)
@@ -41,8 +43,51 @@ def main() -> None:
         command.add_argument("--cache", type=Path, default=Path(".cache/embeddings"))
         command.add_argument("--report", type=Path, default=Path(f"artifacts/{name}-report.json"))
         command.add_argument("--allow-demo", action="store_true")
+    evaluation = commands.add_parser("evaluate", help="Run a reviewed question set")
+    evaluation.add_argument("--suite", type=Path, required=True)
+    evaluation.add_argument("--corpus", type=Path, required=True)
+    evaluation.add_argument("--ingestion-report", type=Path)
+    evaluation.add_argument("--report", type=Path, default=Path("artifacts/evaluation/report.json"))
+    evaluation.add_argument("--summary", type=Path)
+    evaluation.add_argument("--case-id", action="append", default=[])
+    evaluation.add_argument("--retrieval-mode", choices=["local", "azure"], default="local")
+    evaluation.add_argument("--generation-mode", choices=["evidence", "azure"], default="evidence")
+    evaluation.add_argument("--allow-demo", action="store_true")
     commands.add_parser("export-contract")
     args = parser.parse_args()
+    if args.command == "evaluate":
+        from .infrastructure.evaluation.command import run_evaluation
+
+        try:
+            report = run_evaluation(args)
+        except (ValueError, OSError, KeyError, TypeError, AzureError, OpenAIError):
+            parser.exit(
+                2,
+                "Evaluation setup failed. Check suite/source pins, ingestion report, "
+                "output paths and provider configuration.\n",
+            )
+        print(
+            json.dumps(
+                {
+                    k: report[k]
+                    for k in (
+                        "suiteId",
+                        "snapshotId",
+                        "isDemo",
+                        "answerMode",
+                        "retrievalMode",
+                        "total",
+                        "passed",
+                        "failed",
+                        "expectedSourceRecall",
+                    )
+                },
+                indent=2,
+            )
+        )
+        if report["failed"]:
+            parser.exit(1)
+        return
     if args.command == "export-contract":
         output = Path("contracts/answer.schema.json")
         output.parent.mkdir(parents=True, exist_ok=True)

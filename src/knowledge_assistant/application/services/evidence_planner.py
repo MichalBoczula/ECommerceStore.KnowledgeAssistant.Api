@@ -1,7 +1,7 @@
 from knowledge_assistant.domain.models import Document
 
 from ..planning import AnswerPlan, PlanSection
-from .evidence_catalog import intent, policy_rules, select_contract
+from .evidence_catalog import intent, policy_rules, select_contract, select_policies
 
 
 class EvidencePlanner:
@@ -10,8 +10,9 @@ class EvidencePlanner:
     def plan(self, question: str, documents: list[Document]) -> AnswerPlan:
         sections = []
         requested = intent(question)
-        for doc in documents:
-            if doc.kind == "validation" and requested.validation:
+        contract = select_contract(question, documents) if requested.contract else None
+        for doc in select_policies(question, documents, contract):
+            if requested.validation:
                 rules = policy_rules(doc)
                 if rules:
                     sections.append(
@@ -26,7 +27,7 @@ class EvidencePlanner:
                         )
                     )
         if requested.contract:
-            doc = select_contract(question, documents)
+            doc = contract
             if doc is not None:
                 sections.append(
                     PlanSection(
@@ -39,6 +40,21 @@ class EvidencePlanner:
                         source_ids=[doc.source.id],
                     )
                 )
+        flows = [
+            d for d in documents if d.kind == "flow" and d.title.casefold() in question.casefold()
+        ]
+        for doc in flows:
+            sections.append(
+                PlanSection(
+                    type="explanation",
+                    title=doc.title,
+                    text=doc.content,
+                    rule_ids=[],
+                    document_id=doc.id,
+                    generated_example_json=None,
+                    source_ids=[doc.source.id],
+                )
+            )
         if not sections and documents and not requested.contract:
             doc = documents[0]
             sections.append(
