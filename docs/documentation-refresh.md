@@ -118,6 +118,19 @@ query embeddings, and the core model case makes another query embedding/chat req
 existing provider SDK retry behavior can add attempts. Indexing records measured
 embedding usage; chat cost/usage monitoring belongs to public-demo readiness.
 
+### First refresh of the DOCS/01 snapshot
+
+Select the published LiveDocs commit `ce5a8a496a674e58240a498485290c964c051cb9`
+when dispatching the workflow. Verified offline ingestion produced snapshot
+`v1-838bfd35950d4a1a1a0b`, with 2,304 source documents across the four services. The
+plan at 1,536 dimensions contains 3,873 chunks, 3,785 unique embedding inputs,
+15,822,605 UTF-8 input bytes and 23,795,712 raw vector bytes. To run this reviewed
+snapshot, set `KA_REFRESH_MAX_INPUTS=4000` and `KA_REFRESH_MAX_INPUT_BYTES=16000000`
+in the `knowledge-refresh` environment. The default vector-byte ceiling covers this
+plan at 1,536 dimensions. Check the available storage in the existing Free Search
+service before indexing, and review the measured `storageBytes` after the upload.
+Azure capacity and model results remain to be verified by the live workflow.
+
 Only provenance/planning/index/evaluation metadata is uploaded as
 `knowledge-refresh-reports` (14 days). The handoff is retained for 30 days. Source ZIPs,
 embedding cache and raw corpus stay on the disposable runner; the real corpus is baked
@@ -126,7 +139,7 @@ its documentation data to anyone who can pull it. Use appropriate private regist
 access if that documentation must be private. No generated reports or source bundles
 are committed to Git.
 
-The current reviewed suite pins the October Products publication. Unresolved relationship
+The current reviewed suite pins the Products publication in DOCS/01. Unresolved relationship
 warnings remain in the ingestion report and supported answers disclose limitations;
 archive integrity failures always stop ingestion. Evaluation is a factual/lexical gate,
 not proof of every generated sentence. Inspect the model answer before public presentation.

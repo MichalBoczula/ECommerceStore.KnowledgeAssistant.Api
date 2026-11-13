@@ -6,8 +6,8 @@
   "sourcePins": [
     {
       "service": "products",
-      "commitSha": "ab8fe05e2fee4870c6b1255a8f4d6e5d49d90f5e",
-      "bundleSha256": "9625b79583bec33425fd2ca7c1cc43b0a4f323483698614534fbdcf0b25d5da6"
+      "commitSha": "71f8a59f1d2cee84a90247de305901c6cb5dc7a6",
+      "bundleSha256": "3778159f7c3579610bfb0fd76c0068dbe11e7e7e547c0c2a7fe251ab3d548c53"
     }
   ],
   "cases": [
