@@ -80,8 +80,11 @@ a fresh `KA_SEARCH_INDEX` when replacing it. The application does not delete old
 indexes, alter existing capacity, change a SKU or select a paid fallback.
 
 Rows contain bounded searchable text, title, kind, scope and source-document identity/
-hash plus a hidden vector. Full `payloadJson`, duplicated component schemas, source
-JSON and binary attachments are omitted. The authoritative corpus retains them.
+hash plus a hidden vector. New indexes use `stored: false` to omit the extra retrievable
+vector copy. Every upload sends the whole row and vector. If an earlier index stores that
+copy, choose a new index name and keep the old index available for rollback. Full
+`payloadJson`, duplicated component schemas, source JSON and binary attachments stay in
+the authoritative corpus or source archives.
 
 Every batch result must acknowledge every expected row ID successfully. After upload,
 the command polls the scoped visible chunk count for up to 30 attempts, one second

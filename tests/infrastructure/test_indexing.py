@@ -92,6 +92,16 @@ def test_definition_round_trip_matches_pinned_sdk_schema(cloud):
     assert not compatible(actual, expected)
 
 
+def test_existing_index_with_a_stored_vector_copy_requires_a_new_index(demo, cloud, tmp_path):
+    cloud.index.index = index_definition("knowledge-v1", cloud.settings.embedding_dimensions)
+    embedding = next(field for field in cloud.index.index.fields if field.name == "embedding")
+    embedding.stored = True
+    with pytest.raises(ValueError, match="select a new KA_SEARCH_INDEX"):
+        indexer(cloud).upload(plan_index(demo.corpus, cloud.settings), tmp_path)
+    assert cloud.index.created == cloud.search.uploads == []
+    assert cloud.embeddings.requests == 0
+
+
 def test_statistics_outage_does_not_hide_a_completed_upload(demo, cloud, tmp_path):
     def fail(name):
         raise AzureError("not public")

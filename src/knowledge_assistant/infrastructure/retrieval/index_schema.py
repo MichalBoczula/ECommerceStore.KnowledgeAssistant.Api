@@ -37,6 +37,7 @@ def index_definition(name: str, dimensions: int) -> SearchIndex:
             type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
             searchable=True,
             hidden=True,
+            stored=False,
             vector_search_dimensions=dimensions,
             vector_search_profile_name="knowledge-profile",
         )
@@ -67,6 +68,8 @@ def compatible(actual: SearchIndex, expected: SearchIndex) -> bool:
         if found is None or found.type != wanted.type:
             return False
         if any(bool(getattr(found, p)) != bool(getattr(wanted, p)) for p in flags):
+            return False
+        if wanted.stored is not None and found.stored != wanted.stored:
             return False
         if any(
             getattr(found, p) != getattr(wanted, p)

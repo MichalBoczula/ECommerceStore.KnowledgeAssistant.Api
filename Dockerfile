@@ -1,4 +1,7 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-trixie
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 RUN pip install --no-cache-dir uv==0.13.4
 COPY pyproject.toml uv.lock ./

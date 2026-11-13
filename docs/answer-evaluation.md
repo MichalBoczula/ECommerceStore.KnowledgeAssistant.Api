@@ -10,7 +10,7 @@ There is no model judge, new database, dependency or HTTP contract.
 | Set | Purpose | Source |
 | --- | --- | --- |
 | `evaluation/demo-smoke.json` | Four deterministic CI regression checks. | Existing synthetic demo corpus; explicit `--allow-demo`. |
-| `evaluation/products-v1.json` | 25 source-reviewed Products questions and expected facts. | Exact Products commit `ab8fe05e2fee4870c6b1255a8f4d6e5d49d90f5e`, archive SHA-256 `9625b79583bec33425fd2ca7c1cc43b0a4f323483698614534fbdcf0b25d5da6`. |
+| `evaluation/products-v1.json` | 25 source-reviewed Products questions and expected facts. | Exact Products commit `71f8a59f1d2cee84a90247de305901c6cb5dc7a6`, archive SHA-256 `3778159f7c3579610bfb0fd76c0068dbe11e7e7e547c0c2a7fe251ab3d548c53`. |
 
 The Products questions cover the combined phone-validation/create request, eight phone
 rules, eleven published hardware rules, amount/pagination/filter policies, nine API
@@ -20,10 +20,11 @@ they are not recorded model answers. The hardware policy is published without an
 explicit operation link: those answers must disclose that limitation. No hardware or
 money validation is inferred from the create flow.
 
-The snapshot is the **26 October Products publication**, not a claim about today's
-application. Updating that service's commit or archive requires reviewing and updating
-the suite pins and expectations. Other services can coexist in the supplied corpus;
-each query stays within its selected service and snapshot.
+The suite uses the **9 November Products publication** selected by LiveDocs PR #14.
+All 25 questions passed in local evidence mode with 100% expected-source recall on the
+complete four-service snapshot `v1-838bfd35950d4a1a1a0b`. Updating the Products commit or
+archive requires reviewing the suite pins and expectations. Each query stays within its
+selected service and snapshot.
 
 ## Offline use
 
@@ -108,8 +109,9 @@ public demonstration. Offline success does not establish Azure/model quality.
 ## Measured Products baseline
 
 [The recorded comparison](../evaluation/baselines/products-local-v1.json) used all
-**189 documents** from the verified Products archive, with the same 25 questions and
-candidate limit 12 before and after these changes:
+**189 documents** from the 26 October Products archive, with the same 25 questions and
+candidate limit 12 before and after these changes. The baseline file preserves that
+historical suite's pins:
 
 | Mode | Before | After |
 | --- | --- | --- |
