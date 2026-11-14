@@ -13,7 +13,7 @@
   "cases": [
     {
       "id": "products-01",
-      "question": "How does mobile phone validation work? Give me the JSON contract for creating a mobile phone.",
+      "question": "How does mobile phone validation work? Give only the validation rules and the JSON contract for creating a mobile phone, including a JSON request body example.",
       "service": "products",
       "expect": {
         "statuses": [
