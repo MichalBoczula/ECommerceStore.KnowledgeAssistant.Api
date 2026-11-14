@@ -1,4 +1,5 @@
 from knowledge_assistant.domain.models import Document
+from knowledge_assistant.domain.text import FORMAT_TERMS, tokens
 
 from ..planning import AnswerPlan, PlanSection
 from .evidence_catalog import intent, policy_rules, select_contract, select_policies
@@ -55,19 +56,24 @@ class EvidencePlanner:
                     source_ids=[doc.source.id],
                 )
             )
-        if not sections and documents and not requested.contract:
-            doc = documents[0]
-            sections.append(
-                PlanSection(
-                    type="scenario" if doc.kind in {"scenario", "execution"} else "explanation",
-                    title=doc.title,
-                    text=doc.content,
-                    rule_ids=[],
-                    document_id=doc.id,
-                    generated_example_json=None,
-                    source_ids=[doc.source.id],
-                )
+        if not sections and not requested.contract:
+            terms = tokens(question) - FORMAT_TERMS
+            doc = next(
+                (d for d in documents if terms & tokens(f"{d.title} {d.content}")),
+                None,
             )
+            if doc is not None:
+                sections.append(
+                    PlanSection(
+                        type="scenario" if doc.kind in {"scenario", "execution"} else "explanation",
+                        title=doc.title,
+                        text=doc.content,
+                        rule_ids=[],
+                        document_id=doc.id,
+                        generated_example_json=None,
+                        source_ids=[doc.source.id],
+                    )
+                )
         return AnswerPlan(
             status="answered" if sections else "not_found",
             sections=sections[:12],
