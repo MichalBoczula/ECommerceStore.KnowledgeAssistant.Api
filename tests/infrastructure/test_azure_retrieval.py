@@ -121,6 +121,36 @@ def test_long_unicode_questions_are_embedded_without_losing_the_tail(demo, cloud
     assert all(len(t.encode()) <= 6000 for t in inputs)
 
 
+@pytest.mark.parametrize(
+    ("question", "expected_status"),
+    [
+        ("How does lunar agriculture work on Ganymede?", "not_found"),
+        ("What happens to an invalid price?", "answered"),
+    ],
+)
+def test_evidence_fallback_checks_topic_of_hybrid_candidates(
+    demo, cloud, tmp_path, question, expected_status
+):
+    retriever, plan = prepared(demo, cloud, tmp_path)
+    flow = next(row for row in plan.rows if row["kind"] == "flow")
+    scenario = next(row for row in plan.rows if row["kind"] == "scenario")
+    cloud.search.search_rows = [flow, scenario]
+    query = QUERY.model_copy(update={"question": question})
+    with TestClient(create_app(corpus=demo.corpus, retriever=retriever)) as client:
+        response = client.post("/api/v1/query", json=query.model_dump(by_alias=True))
+
+    assert response.status_code == 200
+    answer = response.json()
+    assert answer["status"] == expected_status
+    if expected_status == "not_found":
+        assert answer["sections"] == answer["sources"] == []
+    else:
+        assert [section["type"] for section in answer["sections"]] == ["scenario"]
+        assert [source["id"] for source in answer["sources"]] == [
+            retriever.documents[scenario["documentId"]].source.id
+        ]
+
+
 def test_http_query_returns_validation_then_the_exact_contract_from_hybrid_evidence(
     demo, cloud, tmp_path
 ):
