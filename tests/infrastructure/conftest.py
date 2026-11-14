@@ -66,7 +66,7 @@ class IndexFake:
         self.created.append(definition)
 
     def get_index_statistics(self, name):
-        return SimpleNamespace(storage_size=100, vector_index_size=0)
+        return {"storage_size": 100, "vector_index_size": 0}
 
     def close(self):
         pass
