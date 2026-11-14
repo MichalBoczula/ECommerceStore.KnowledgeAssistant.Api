@@ -181,7 +181,7 @@ jobs:
       - name: Smoke test the container
         run: bash scripts/smoke-image.sh "$CI_IMAGE"
       - name: Verify refresh corpus checks with a synthetic non-demo fixture
-        run: bash scripts/smoke-refresh-fixture.sh "$CI_IMAGE"
+        run: bash scripts/smoke-refresh-fixture.sh
       - name: Scan the image
         uses: aquasecurity/trivy-action@v0.36.0
         with:

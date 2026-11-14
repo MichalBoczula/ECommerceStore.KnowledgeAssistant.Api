@@ -8,7 +8,7 @@ COPY pyproject.toml uv.lock ./
 COPY src ./src
 RUN uv sync --frozen --no-dev
 ARG CORPUS_FILE=examples/demo-corpus.json
-COPY ${CORPUS_FILE} /app/data/corpus.json
+COPY --chmod=0444 ${CORPUS_FILE} /app/data/corpus.json
 ENV KA_CORPUS_PATH=/app/data/corpus.json
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
