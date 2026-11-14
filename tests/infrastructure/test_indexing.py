@@ -134,10 +134,12 @@ def test_plan_and_uploader_must_use_the_same_embedding_profile(demo, cloud, tmp_
 def test_completed_snapshot_reuses_index_without_embedding_cache(demo, cloud, tmp_path):
     plan = plan_index(demo.corpus, cloud.settings)
     service = indexer(cloud)
-    service.upload(plan, tmp_path / "first-cache")
+    first = service.upload(plan, tmp_path / "first-cache")
+    assert first["storageBytes"] == 100 and first["vectorIndexBytes"] == 0
     calls, uploads = cloud.embeddings.requests, len(cloud.search.uploads)
     result = service.upload(plan, tmp_path / "empty-cache")
     assert result["reusedCompletedSnapshot"] and result["embeddingRequests"] == 0
+    assert result["storageBytes"] == 100 and result["vectorIndexBytes"] == 0
     assert cloud.embeddings.requests == calls and len(cloud.search.uploads) == uploads
 
 

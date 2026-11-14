@@ -140,7 +140,10 @@ class AzureIndexer:
     def statistics(self):
         try:
             stats = self.index_client.get_index_statistics(self.settings.search_index)
-            return {"storageBytes": stats.storage_size, "vectorIndexBytes": stats.vector_index_size}
+            return {
+                "storageBytes": stats.get("storage_size"),
+                "vectorIndexBytes": stats.get("vector_index_size"),
+            }
         except AzureError:
             return {"storageBytes": None, "vectorIndexBytes": None}
 
