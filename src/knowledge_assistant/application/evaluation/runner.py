@@ -6,9 +6,11 @@ import math
 from datetime import UTC, datetime
 from time import perf_counter
 
+from knowledge_assistant.domain.errors import EvidenceVerificationError
 from knowledge_assistant.domain.models import Corpus, Document
 
 from ..contracts import Answer, Query
+from ..errors import DependencyUnavailableError
 from ..ports import AnswerPlanner, KnowledgeRetriever
 from ..services.knowledge_service import KnowledgeService
 from ..services.request_examples import validate_example
@@ -193,9 +195,16 @@ def evaluate_suite(
                 citedSourcePaths=sorted(s.path for s in answer.sources),
                 operationIds=[s.operation_id for s in answer.sections if s.type == "api_contract"],
             )
-        except Exception:
+        except Exception as exc:
             # Provider messages, question text, answers and secrets never enter reports.
-            result.update(status="error", checks={}, failures=["query_failed"])
+            error_kind = "unexpected_error"
+            if isinstance(exc, DependencyUnavailableError):
+                error_kind = "provider_unavailable"
+            elif isinstance(exc, EvidenceVerificationError):
+                error_kind = "evidence_verification_failed"
+            result.update(
+                status="error", checks={}, failures=["query_failed"], errorKind=error_kind
+            )
         required = set(case.expect.required_source_paths)
         retrieved = {d.source.path for d in recorded.documents}
         result.update(

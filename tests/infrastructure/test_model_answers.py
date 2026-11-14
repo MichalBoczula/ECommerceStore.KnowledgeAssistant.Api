@@ -1,8 +1,9 @@
 import json
 from types import SimpleNamespace
 
+import httpx
 import pytest
-from openai import OpenAIError
+from openai import BadRequestError, OpenAIError
 
 from knowledge_assistant.application.errors import DependencyUnavailableError
 from knowledge_assistant.application.planning import AnswerPlan, PlanSection
@@ -94,6 +95,31 @@ def test_parse_and_provider_failures_are_controlled_without_retrying_with_demo(d
 def test_no_parsed_output_is_rejected(demo):
     with pytest.raises(EvidenceVerificationError):
         planner(lambda **_: response(None)).plan(QUESTION, demo.corpus.documents)
+
+
+def test_model_failure_diagnostics_exclude_provider_content(demo, caplog):
+    def fail(**kwargs):
+        raise BadRequestError(
+            "private provider message",
+            response=httpx.Response(
+                400, request=httpx.Request("POST", "https://example.com/openai/v1/responses")
+            ),
+            body={"code": "private provider detail"},
+        )
+
+    with pytest.raises(DependencyUnavailableError):
+        planner(fail).plan(QUESTION, demo.corpus.documents)
+    assert "HTTP 400 (unclassified)" in caplog.text
+    assert "private provider" not in caplog.text
+    assert QUESTION not in caplog.text
+
+
+def test_output_budget_exhaustion_is_identifiable(demo, caplog):
+    result = response(None, status="incomplete")
+    result.incomplete_details = SimpleNamespace(reason="max_output_tokens")
+    with pytest.raises(EvidenceVerificationError, match="did not complete"):
+        planner(lambda **_: result).plan(QUESTION, demo.corpus.documents)
+    assert "Model response incomplete: max_output_tokens" in caplog.text
 
 
 def test_rule_from_retrieved_but_omitted_content_is_not_authorized(demo):
