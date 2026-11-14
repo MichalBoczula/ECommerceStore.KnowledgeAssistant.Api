@@ -1,6 +1,7 @@
 import json
+import logging
 
-from openai import OpenAIError
+from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAIError
 
 from knowledge_assistant.application.errors import DependencyUnavailableError
 from knowledge_assistant.application.planning import AnswerPlan
@@ -10,6 +11,19 @@ from knowledge_assistant.domain.models import Document
 from ..clients.openai_client import openai_client
 from ..configuration.settings import Settings
 from .evidence_context import build_context
+
+logger = logging.getLogger(__name__)
+
+PROVIDER_ERROR_CODES = {
+    "DeploymentNotFound",
+    "ResponsibleAIPolicyViolation",
+    "content_filter",
+    "invalid_json_schema",
+    "model_not_found",
+    "rate_limit_exceeded",
+    "unsupported_parameter",
+    "unsupported_value",
+}
 
 
 class ModelPlanner:
@@ -24,8 +38,22 @@ class ModelPlanner:
         try:
             return self._plan(question, documents)
         except OpenAIError as exc:
+            if isinstance(exc, APIStatusError):
+                code = exc.code
+                if not isinstance(code, str) or code not in PROVIDER_ERROR_CODES:
+                    code = "unclassified"
+                logger.warning("Model request failed: HTTP %d (%s)", exc.status_code, code)
+            elif isinstance(exc, APITimeoutError):
+                logger.warning("Model request timed out")
+            elif isinstance(exc, APIConnectionError):
+                logger.warning("Model connection failed")
+            else:
+                logger.warning("Model SDK request failed")
             raise DependencyUnavailableError() from exc
+        except EvidenceVerificationError:
+            raise
         except ValueError:
+            logger.warning("Model output could not be parsed as a structured answer")
             raise EvidenceVerificationError(
                 "Model response did not match the answer plan"
             ) from None
@@ -72,25 +100,43 @@ class ModelPlanner:
             max_output_tokens=6000,
             store=False,
         )
-        if getattr(result, "status", None) != "completed" or not isinstance(result.output, list):
+        status = getattr(result, "status", None)
+        if status == "incomplete":
+            reason = getattr(getattr(result, "incomplete_details", None), "reason", None)
+            logger.warning(
+                "Model response incomplete: %s",
+                reason if reason in ("max_output_tokens", "content_filter") else "unclassified",
+            )
+            raise EvidenceVerificationError("Model response did not complete")
+        if status != "completed" or not isinstance(result.output, list):
+            logger.warning("Model response was not completed or its output was missing")
             raise EvidenceVerificationError("Model response did not complete")
         messages = [
             output for output in result.output if getattr(output, "type", None) == "message"
         ]
         if any(not isinstance(getattr(message, "content", None), list) for message in messages):
+            logger.warning("Model response had incomplete message content")
             raise EvidenceVerificationError("Model response has incomplete message content")
         refused = any(
             getattr(content, "type", None) == "refusal"
             for output in messages
             for content in output.content
         )
-        if result.status != "completed" or refused or result.output_parsed is None:
+        if refused:
+            logger.warning("Model response contained a refusal")
+            raise EvidenceVerificationError("Model did not return a valid structured answer")
+        if result.output_parsed is None:
+            logger.warning("Model response had no parsed answer")
             raise EvidenceVerificationError("Model did not return a valid structured answer")
         parsed = result.output_parsed
         parsed = AnswerPlan.model_validate(
             parsed.model_dump() if isinstance(parsed, AnswerPlan) else parsed
         )
-        return context.check(parsed)
+        try:
+            return context.check(parsed)
+        except EvidenceVerificationError:
+            logger.warning("Model response failed supplied-evidence verification")
+            raise
 
     def close(self) -> None:
         self.client.close()

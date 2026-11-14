@@ -7,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from knowledge_assistant.application.contracts import Query
+from knowledge_assistant.application.errors import DependencyUnavailableError
 from knowledge_assistant.application.evaluation.models import EvaluationSuite
 from knowledge_assistant.application.evaluation.runner import (
     checks_for,
@@ -15,6 +16,7 @@ from knowledge_assistant.application.evaluation.runner import (
 )
 from knowledge_assistant.application.services.evidence_planner import EvidencePlanner
 from knowledge_assistant.application.services.knowledge_service import KnowledgeService
+from knowledge_assistant.domain.errors import EvidenceVerificationError
 from knowledge_assistant.domain.models import Corpus
 from knowledge_assistant.infrastructure.retrieval.local_retriever import LocalRetriever
 
@@ -157,15 +159,24 @@ def test_duplicate_case_ids_and_unpinned_services_are_rejected():
         EvaluationSuite.model_validate(s)
 
 
-def test_query_failure_is_failed_and_provider_message_is_not_exported(demo):
+@pytest.mark.parametrize(
+    ("error", "kind"),
+    [
+        (RuntimeError, "unexpected_error"),
+        (DependencyUnavailableError, "provider_unavailable"),
+        (EvidenceVerificationError, "evidence_verification_failed"),
+    ],
+)
+def test_query_failure_is_classified_without_exporting_the_message(demo, error, kind):
     class FailingRetriever:
         mode = "azure_hybrid"
 
         def search(self, query, limit=12):
-            raise RuntimeError("private-provider-token")
+            raise error("private-provider-token")
 
     report = evaluate_suite(suite(), demo.corpus, FailingRetriever(), EvidencePlanner())
     assert report["failed"] == 4 and report["passed"] == 0
     assert all(c["failures"] == ["query_failed"] for c in report["cases"])
+    assert all(c["errorKind"] == kind for c in report["cases"])
     assert "private-provider-token" not in json.dumps(report)
     assert "question" not in json.dumps(report)
