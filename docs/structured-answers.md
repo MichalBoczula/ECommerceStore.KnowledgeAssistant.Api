@@ -50,10 +50,11 @@ available for exact server hydration, while example generation is disabled for i
 Context omissions produce an explicit partial-answer limitation. No hidden schema or
 contract is replaced with a guessed smaller structure.
 
-The configured chat deployment is preserved. There is no new model choice, external
-tool call, repair-model call or evidence/demo fallback. Responses requests use the
-Pydantic plan schema and `store=false`. This flag is not a claim about every aspect of
-provider data retention. Credentials remain in the existing server configuration.
+Responses requests use the configured chat deployment and `store=false`.
+When an explicitly requested example for one selected contract is missing or invalid,
+the planner can make one more request with only that contract's schema and local
+references. The original schema must validate the proposed JSON before it can be
+included. Credentials remain in the existing server configuration.
 
 ## Examples and verification
 

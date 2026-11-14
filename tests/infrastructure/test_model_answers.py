@@ -17,7 +17,7 @@ from knowledge_assistant.infrastructure.planning.evidence_context import (
     encoded,
     schema_context,
 )
-from knowledge_assistant.infrastructure.planning.model_planner import ModelPlanner
+from knowledge_assistant.infrastructure.planning.model_planner import ModelPlanner, RequestExample
 
 QUESTION = "Explain mobile phone validation and give me the JSON contract to create a mobile phone"
 
@@ -208,6 +208,44 @@ def test_oversized_contract_stays_hydratable_but_cannot_authorize_generation(dem
     assert checked.sections[-1].document_id == contract.id
     assert checked.sections[-1].generated_example_json is None
     assert checked.status == "partial"
+
+
+@pytest.mark.parametrize(
+    ("first_example", "second_example", "uses_retry"),
+    [
+        (None, "valid", True),
+        ("{}", "valid", True),
+        (None, "{}", True),
+        ("valid", None, False),
+    ],
+)
+def test_explicit_request_example_is_retried_once_and_checked_against_original_schema(
+    demo, first_example, second_example, uses_retry
+):
+    docs = demo.corpus.documents
+    contract = next(d for d in docs if d.kind == "api_contract")
+    contract.payload.update(exampleRequest=None, hasDocumentedExample=False)
+    plan = EvidencePlanner().plan(QUESTION, docs)
+    valid = json.dumps(demo.example)
+    plan.sections[-1].generated_example_json = valid if first_example == "valid" else first_example
+    calls = []
+
+    def parse(**kwargs):
+        calls.append(kwargs["text_format"])
+        if kwargs["text_format"] is AnswerPlan:
+            return response(plan)
+        assert json.loads(kwargs["input"]) == {
+            "method": "POST",
+            "path": "/mobile-phones",
+            "requestSchema": demo.schema,
+            "referenceSchemas": {},
+        }
+        return response(RequestExample(example_json=valid if second_example == "valid" else "{}"))
+
+    result = planner(parse).plan(QUESTION + " Include a JSON request body example.", docs)
+    assert calls == ([AnswerPlan, RequestExample] if uses_retry else [AnswerPlan])
+    expected = valid if first_example == "valid" or second_example == "valid" else first_example
+    assert result.sections[-1].generated_example_json == expected
 
 
 def test_unrelated_question_can_return_not_found_without_an_invented_answer(demo):
