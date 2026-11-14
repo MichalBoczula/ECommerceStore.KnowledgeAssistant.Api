@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from knowledge_assistant.application.contracts import Query
-from knowledge_assistant.application.errors import DependencyUnavailableError
+from knowledge_assistant.application.errors import AnswerAssemblyError, DependencyUnavailableError
 from knowledge_assistant.application.evaluation.models import EvaluationSuite
 from knowledge_assistant.application.evaluation.runner import (
     checks_for,
@@ -180,3 +180,17 @@ def test_query_failure_is_classified_without_exporting_the_message(demo, error, 
     assert all(c["errorKind"] == kind for c in report["cases"])
     assert "private-provider-token" not in json.dumps(report)
     assert "question" not in json.dumps(report)
+
+
+def test_failed_answer_assembly_reports_a_code_without_the_message(demo):
+    class FailingPlanner:
+        mode = "model"
+
+        def plan(self, question, documents):
+            raise AnswerAssemblyError("invalid_citation", "private model output")
+
+    report = evaluate_suite(suite(), demo.corpus, LocalRetriever(demo.corpus), FailingPlanner())
+    first = report["cases"][0]
+    assert first["errorKind"] == "evidence_verification_failed"
+    assert first["assemblyError"] == "invalid_citation"
+    assert "private model output" not in json.dumps(report)

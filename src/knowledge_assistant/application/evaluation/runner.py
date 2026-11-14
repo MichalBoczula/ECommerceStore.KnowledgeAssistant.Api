@@ -10,7 +10,7 @@ from knowledge_assistant.domain.errors import EvidenceVerificationError
 from knowledge_assistant.domain.models import Corpus, Document
 
 from ..contracts import Answer, Query
-from ..errors import DependencyUnavailableError
+from ..errors import AnswerAssemblyError, DependencyUnavailableError
 from ..ports import AnswerPlanner, KnowledgeRetriever
 from ..services.knowledge_service import KnowledgeService
 from ..services.request_examples import validate_example
@@ -205,6 +205,8 @@ def evaluate_suite(
             result.update(
                 status="error", checks={}, failures=["query_failed"], errorKind=error_kind
             )
+            if isinstance(exc, AnswerAssemblyError):
+                result["assemblyError"] = exc.code
         required = set(case.expect.required_source_paths)
         retrieved = {d.source.path for d in recorded.documents}
         result.update(

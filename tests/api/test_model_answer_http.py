@@ -11,7 +11,7 @@ from knowledge_assistant.infrastructure.planning.model_planner import ModelPlann
 QUESTION = "Explain mobile phone validation and give me the JSON contract to create a mobile phone"
 
 
-def model(invent=False):
+def model(invent=False, include_sources=True):
     def parse(**kwargs):
         evidence = json.loads(kwargs["input"])["evidence"]
         sections = []
@@ -28,7 +28,7 @@ def model(invent=False):
                         ["made-up"] if invent else [r["ruleId"] for r in doc.get("rules", [])]
                     ),
                     generated_example_json=None,
-                    source_ids=[doc["sourceId"]],
+                    source_ids=[doc["sourceId"]] if include_sources else [],
                 ),
             )
         return SimpleNamespace(
@@ -48,7 +48,7 @@ def model(invent=False):
 
 
 def test_model_plan_becomes_ordered_original_rule_and_contract_sections(demo):
-    with TestClient(create_app(corpus=demo.corpus, planner=model())) as client:
+    with TestClient(create_app(corpus=demo.corpus, planner=model(include_sources=False))) as client:
         response = client.post(
             "/api/v1/query",
             json={"question": QUESTION, "service": "products", "snapshotId": "demo-v1"},
@@ -59,7 +59,12 @@ def test_model_plan_becomes_ordered_original_rule_and_contract_sections(demo):
     assert [s["type"] for s in answer["sections"]] == ["validation", "api_contract"]
     assert answer["sections"][1]["requestSchema"] == demo.schema
     assert answer["sections"][1]["exampleRequest"] == demo.example
-    assert all(rule["sourceIds"] for rule in answer["sections"][0]["rules"])
+    sources = {doc.kind: doc.source.id for doc in demo.corpus.documents}
+    assert answer["sections"][0]["sourceIds"] == [sources["validation"]]
+    assert answer["sections"][1]["sourceIds"] == [sources["api_contract"]]
+    assert all(
+        rule["sourceIds"] == [sources["validation"]] for rule in answer["sections"][0]["rules"]
+    )
 
 
 def test_invented_rule_ids_return_safe_problem_details(demo, caplog):

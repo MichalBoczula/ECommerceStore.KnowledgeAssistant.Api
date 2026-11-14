@@ -1,6 +1,5 @@
 from uuid import uuid4
 
-from knowledge_assistant.domain.errors import EvidenceVerificationError
 from knowledge_assistant.domain.models import Document
 
 from ..contracts import (
@@ -11,6 +10,7 @@ from ..contracts import (
     ScenarioSection,
     ValidationSection,
 )
+from ..errors import AnswerAssemblyError
 from ..planning import AnswerPlan
 from .evidence_catalog import intent, policy_rules
 from .request_examples import resolve_example
@@ -34,11 +34,14 @@ def assemble(
             for d in documents
         )
     ):
-        raise EvidenceVerificationError(
-            "Answer evidence has duplicate identities or escaped its scope"
+        raise AnswerAssemblyError(
+            "invalid_evidence_scope",
+            "Answer evidence has duplicate identities or escaped its scope",
         )
     if plan.status == "not_found" and plan.sections:
-        raise EvidenceVerificationError("A not-found plan must not contain answer sections")
+        raise AnswerAssemblyError(
+            "not_found_with_sections", "A not-found plan must not contain answer sections"
+        )
     sections, used, limitations = [], set(), list(plan.limitations)
     partial = plan.status == "partial"
     validation_rules, validation_sources, selected_rules = [], [], set()
@@ -57,7 +60,9 @@ def assemble(
 
     def check_sources(ids: list[str]):
         if not ids or any(source not in sources for source in ids):
-            raise EvidenceVerificationError("Answer cites missing or unknown evidence")
+            raise AnswerAssemblyError(
+                "invalid_citation", "Answer cites missing or unknown evidence"
+            )
 
     for section in plan.sections:
         check_sources(section.source_ids)
@@ -65,11 +70,17 @@ def assemble(
         if section.document_id is not None and (
             doc is None or doc.source.id not in section.source_ids
         ):
-            raise EvidenceVerificationError("Artifact is not part of the cited retrieval evidence")
+            raise AnswerAssemblyError(
+                "uncited_artifact", "Artifact is not part of the cited retrieval evidence"
+            )
         if section.type != "validation" and section.rule_ids:
-            raise EvidenceVerificationError("Rule references belong only to validation sections")
+            raise AnswerAssemblyError(
+                "unexpected_rule_references", "Rule references belong only to validation sections"
+            )
         if section.type != "api_contract" and section.generated_example_json is not None:
-            raise EvidenceVerificationError("Generated request belongs only to an API contract")
+            raise AnswerAssemblyError(
+                "unexpected_request_example", "Generated request belongs only to an API contract"
+            )
         if section.type == "explanation":
             if not section.text.strip():
                 limit("An empty explanation was omitted.")
@@ -85,13 +96,19 @@ def assemble(
             used.update(section.source_ids)
             continue
         if doc is None:
-            raise EvidenceVerificationError("Artifact is not part of the cited retrieval evidence")
+            raise AnswerAssemblyError(
+                "uncited_artifact", "Artifact is not part of the cited retrieval evidence"
+            )
         if section.type == "validation":
             if doc.kind != "validation":
-                raise EvidenceVerificationError("Wrong source type for validation section")
+                raise AnswerAssemblyError(
+                    "wrong_source_type", "Wrong source type for validation section"
+                )
             catalog = policy_rules(doc)
             if any(identity not in catalog for identity in section.rule_ids):
-                raise EvidenceVerificationError("Validation references an unknown documented rule")
+                raise AnswerAssemblyError(
+                    "unknown_rule", "Validation references an unknown documented rule"
+                )
             if not section.rule_ids:
                 limit("A validation section without documented rules was omitted.")
                 continue
@@ -127,7 +144,9 @@ def assemble(
         common = {"title": doc.title, "source_ids": [doc.source.id]}
         if section.type == "scenario":
             if doc.kind not in {"scenario", "execution"}:
-                raise EvidenceVerificationError("Wrong source type for scenario section")
+                raise AnswerAssemblyError(
+                    "wrong_source_type", "Wrong source type for scenario section"
+                )
             status = doc.payload.get("status") if doc.kind == "execution" else None
             sections.append(
                 ScenarioSection(
@@ -142,11 +161,14 @@ def assemble(
                 )
             continue
         if doc.kind != "api_contract":
-            raise EvidenceVerificationError("Wrong source type for API contract section")
+            raise AnswerAssemblyError(
+                "wrong_source_type", "Wrong source type for API contract section"
+            )
         payload = doc.payload
         if not isinstance(payload.get("requestSchema", {}), dict):
-            raise EvidenceVerificationError(
-                "Request schema is not supported by the answer contract"
+            raise AnswerAssemblyError(
+                "unsupported_request_schema",
+                "Request schema is not supported by the answer contract",
             )
         example, origin, valid, notes, incomplete = resolve_example(
             payload, section.generated_example_json

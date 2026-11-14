@@ -66,7 +66,7 @@ def schema_context(payload: dict) -> dict | None:
 @dataclass
 class EvidenceContext:
     body: dict
-    document_ids: set[str]
+    document_sources: dict[str, str]
     source_ids: set[str]
     rules: dict[str, set[str]]
     example_ids: set[str]
@@ -78,10 +78,17 @@ class EvidenceContext:
         for section in plan.sections:
             if any(source not in self.source_ids for source in section.source_ids):
                 raise EvidenceVerificationError("Model cites evidence outside its supplied context")
-            if section.document_id is not None and section.document_id not in self.document_ids:
+            if section.document_id is not None and section.document_id not in self.document_sources:
                 raise EvidenceVerificationError(
                     "Model references an artifact outside its supplied context"
                 )
+            if (
+                section.document_id is not None
+                and section.type != "explanation"
+                and not section.source_ids
+            ):
+                # The verified document is the source of every artifact-backed section.
+                section.source_ids = [self.document_sources[section.document_id]]
             if any(
                 rule not in self.rules.get(section.document_id, set()) for rule in section.rule_ids
             ):
@@ -120,7 +127,7 @@ def build_context(question: str, documents: list[Document]) -> EvidenceContext:
         },
         "evidence": [],
     }
-    result = EvidenceContext(body, set(), set(), {}, set(), set(), False)
+    result = EvidenceContext(body, {}, set(), {}, set(), set(), False)
     priority = {
         "api_contract": 0 if requested.contract else 3,
         "validation": 1 if requested.validation else 3,
@@ -188,7 +195,7 @@ def build_context(question: str, documents: list[Document]) -> EvidenceContext:
             continue
         body["evidence"].append(entry)
         result.limited = result.limited or limited
-        result.document_ids.add(doc.id)
+        result.document_sources[doc.id] = doc.source.id
         result.source_ids.add(doc.source.id)
         result.rules[doc.id] = {r["ruleId"] for r in entry.get("rules", [])}
         if entry.get("hasDocumentedExample"):
