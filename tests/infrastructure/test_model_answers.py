@@ -159,7 +159,7 @@ def test_context_is_bounded_and_omitted_content_is_reported(demo):
         docs.append(doc)
     context = build_context("Explain the documented scenarios", docs)
     assert len(encoded(context.body)) <= MAX_INPUT_BYTES
-    assert context.limited and len(context.document_ids) < len(docs)
+    assert context.limited and len(context.document_sources) < len(docs)
     selected = context.body["evidence"][0]
     plan = AnswerPlan(
         status="answered",

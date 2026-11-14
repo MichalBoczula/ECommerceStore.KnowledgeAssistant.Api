@@ -60,7 +60,7 @@ class ModelPlanner:
 
     def _plan(self, question: str, documents: list[Document]) -> AnswerPlan:
         context = build_context(question, documents)
-        if not context.document_ids:
+        if not context.document_sources:
             return AnswerPlan(
                 status="not_found",
                 sections=[],
@@ -77,6 +77,7 @@ class ModelPlanner:
                 "questions; use partial when a requested part is missing. Do not fill gaps from "
                 "general knowledge. Return validation first, then api_contract, then explanations "
                 "or scenarios. Each explanation needs relevant supplied sourceIds. "
+                "For all other sections, supply the documentId and leave sourceIds empty. "
                 "A validation section must select one validation documentId and its supplied "
                 "ruleIds. Never write rule text: the server copies original documented rules. "
                 "For api_contract and scenario, documentId must identify the correct source kind. "
