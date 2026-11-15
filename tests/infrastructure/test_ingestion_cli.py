@@ -106,3 +106,71 @@ def test_cli_rejects_overwriting_an_input_manifest(tmp_path, bundle_factory, mon
         main()
     assert error.value.code == 2
     assert manifest.read_bytes() == original
+
+
+def test_cli_ingests_faq_and_evaluates_held_out_wording(tmp_path, bundle_factory, monkeypatch):
+    faq = tmp_path / "faq.json"
+    faq.write_text(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "language": "en",
+                "entries": [
+                    {
+                        "id": "PROD-FAQ-01",
+                        "service": "products",
+                        "question": "How do I add a handset to the catalog?",
+                        "target": {"kind": "api_contract", "reference": "createMobilePhone"},
+                    }
+                ],
+            }
+        )
+    )
+    output, ingestion_report, *_ = command(
+        tmp_path, bundle_factory, monkeypatch, "--faq-catalog", str(faq)
+    )
+    main()
+    assert read(ingestion_report)["faqAliases"] == 1
+    (source,) = [doc for doc in read(output)["documents"] if "faqAliases" in doc["payload"]]
+    assert source["source"]["path"] == "sources/openapi.json#/paths/~1mobile-phones/post"
+    assert "handset" not in source["content"]
+
+    suite = tmp_path / "held-out.json"
+    question = "Where can I register a handset in the catalog?"
+    suite.write_text(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "language": "en",
+                "cases": [{"faqId": "PROD-FAQ-01", "question": question}],
+            }
+        )
+    )
+    report = tmp_path / "faq-report.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "knowledge",
+            "evaluate-faq",
+            "--suite",
+            str(suite),
+            "--corpus",
+            str(output),
+            "--ingestion-report",
+            str(ingestion_report),
+            "--report",
+            str(report),
+        ],
+    )
+    main()
+    assert read(report)["first"] == 1
+    assert read(report)["cases"][0]["sourcePath"] == source["source"]["path"]
+    assert question not in output.read_text()
+
+    evaluation = read(suite)
+    evaluation["cases"][0]["question"] = "How do I add a handset to the catalog?"
+    suite.write_text(json.dumps(evaluation))
+    with pytest.raises(SystemExit) as error:
+        main()
+    assert error.value.code == 2

@@ -1,5 +1,6 @@
 import hashlib
 
+from knowledge_assistant.application.evaluation.faq import FaqEvaluation, evaluate_faq
 from knowledge_assistant.application.evaluation.models import EvaluationSuite
 from knowledge_assistant.application.evaluation.runner import evaluate_suite, validate_inputs
 from knowledge_assistant.application.services.evidence_planner import EvidencePlanner
@@ -90,3 +91,29 @@ def run_evaluation(args) -> dict:
         for resource in reversed(resources):
             if hasattr(resource, "close"):
                 resource.close()
+
+
+def run_faq_evaluation(args) -> dict:
+    inputs = (args.corpus, args.suite, args.ingestion_report)
+    if args.report.resolve() in {path.resolve() for path in inputs}:
+        raise ValueError("FAQ evaluation report must not overwrite inputs")
+    suite = FaqEvaluation.model_validate(read(args.suite))
+    corpus = verified_corpus(args.corpus, args.ingestion_report, args.allow_demo)
+    settings = Settings(retrieval_mode=args.retrieval_mode)
+    retriever = (
+        AzureRetriever(settings, corpus)
+        if args.retrieval_mode == "azure"
+        else LocalRetriever(corpus)
+    )
+    try:
+        report = evaluate_faq(corpus, retriever, suite, settings.max_candidates)
+        report.update(
+            corpusFileSha256=hashlib.sha256(args.corpus.read_bytes()).hexdigest(),
+            suiteFileSha256=hashlib.sha256(args.suite.read_bytes()).hexdigest(),
+            searchIndex=settings.search_index if args.retrieval_mode == "azure" else None,
+        )
+        write_report(args.report, report)
+        return report
+    finally:
+        if hasattr(retriever, "close"):
+            retriever.close()

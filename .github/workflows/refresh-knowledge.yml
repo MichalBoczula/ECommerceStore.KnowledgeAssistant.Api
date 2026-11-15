@@ -108,7 +108,8 @@ jobs:
           uv run knowledge ingest --manifest livedocs-source/manifests/portal.json \
             --projects livedocs-source/manifests/projects.json --manifest-commit "$LIVEDOCS_SHA" \
             --cache "$RUNNER_TEMP/livedocs-cache" --download \
-            --livedocs-base-url "$KA_LIVEDOCS_BASE_URL" --output artifacts/active-corpus.json \
+            --livedocs-base-url "$KA_LIVEDOCS_BASE_URL" --faq-catalog knowledge/faq-en.json \
+            --output artifacts/active-corpus.json \
             --report artifacts/refresh/ingestion-report.json
       - name: Require reviewed offline Products evaluation before indexing
         if: steps.cache.outputs.cache-hit != 'true'
@@ -155,6 +156,15 @@ jobs:
             --corpus artifacts/active-corpus.json --ingestion-report artifacts/refresh/ingestion-report.json \
             --retrieval-mode azure --generation-mode azure --case-id products-01 \
             --report artifacts/refresh/model-evaluation.json
+      - name: Measure hybrid retrieval on held-out English FAQ wording
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          KA_SEARCH_KEY: ${{ secrets.KA_SEARCH_QUERY_KEY }}
+          KA_OPENAI_KEY: ${{ secrets.KA_OPENAI_KEY }}
+        run: |
+          uv run knowledge evaluate-faq --suite evaluation/faq-en.json \
+            --corpus artifacts/active-corpus.json --ingestion-report artifacts/refresh/ingestion-report.json \
+            --retrieval-mode azure --report artifacts/refresh/faq-evaluation.json
       - name: Verify matching corpus, profile and live evaluation receipts
         if: steps.cache.outputs.cache-hit != 'true'
         run: |

@@ -57,6 +57,19 @@ def test_hybrid_query_is_prefiltered_and_hydrates_original_documents(demo, cloud
     assert not hasattr(retriever, "index_client")
 
 
+def test_hybrid_faq_hit_hydrates_original_contract_and_source(demo, cloud, tmp_path):
+    contract = next(doc for doc in demo.corpus.documents if doc.kind == "api_contract")
+    contract.payload["faqAliases"] = {"PROD-FAQ-01": "Where can I register a handset in stock?"}
+    retriever, plan = prepared(demo, cloud, tmp_path)
+    cloud.search.search_rows = [row for row in plan.rows if "register a handset" in row["content"]]
+    assert len(cloud.search.search_rows) == 1
+    query = QUERY.model_copy(update={"question": "I need the API for adding a handset to stock."})
+    evidence = retriever.search(query)
+    assert evidence[0] == contract
+    assert evidence[0].source.path == "sources/openapi.json#/paths/~1mobile-phones/post"
+    assert "register a handset" not in evidence[0].content
+
+
 @pytest.mark.parametrize(
     "change",
     [

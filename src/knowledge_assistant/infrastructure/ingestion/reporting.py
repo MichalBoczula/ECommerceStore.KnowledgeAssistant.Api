@@ -2,6 +2,7 @@
 
 from collections import Counter
 
+from knowledge_assistant.domain.faq import faq_aliases
 from knowledge_assistant.domain.models import Corpus, Document
 
 
@@ -64,6 +65,7 @@ def ingestion_report(
         "textBytes": sum(len(d.content.encode()) for d in corpus.documents),
         "documents": len(corpus.documents),
         "documentsByKind": dict(sorted(Counter(d.kind for d in corpus.documents).items())),
+        "faqAliases": sum(len(faq_aliases(doc)) for doc in corpus.documents),
         "services": bundles,
         "warnings": sum(len(b["warnings"]) for b in bundles),
         "note": (
