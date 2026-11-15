@@ -10,6 +10,11 @@ from knowledge_assistant.domain.text import FORMAT_TERMS, tokens
 
 from ..contracts import Rule
 
+RESOURCE_ENDPOINTS = re.compile(
+    r"(?:show (?:me )?|list )?(?:the )?(?P<resource>[\w-]+(?: [\w-]+)*) endpoints?[?.!]?$",
+    re.IGNORECASE,
+)
+
 
 @dataclass(frozen=True)
 class Intent:
@@ -21,8 +26,75 @@ def intent(question: str) -> Intent:
     words = tokens(question)
     return Intent(
         bool(words & {"validation", "validate", "validations", "rules", "constraints"}),
-        bool(words & {"contract", "contracts", "json", "request", "schema", "payload"}),
+        bool(
+            words
+            & {
+                "contract",
+                "contracts",
+                "endpoint",
+                "endpoints",
+                "json",
+                "request",
+                "schema",
+                "payload",
+            }
+        ),
     )
+
+
+def _named_contracts(question: str, candidates: list[Document]) -> list[Document]:
+    question = question.casefold()
+    return [
+        doc
+        for doc in candidates
+        if doc.operation_id
+        and re.search(
+            r"(?<![a-z0-9])" + re.escape(doc.operation_id.casefold()) + r"(?![a-z0-9])", question
+        )
+    ]
+
+
+def lookup_contracts(question: str, documents: list[Document]) -> list[Document]:
+    """Find scoped operations for an endpoint list or an exact contract with validation."""
+    candidates = [doc for doc in documents if doc.kind == "api_contract"]
+    question = " ".join(question.split())
+    if match := RESOURCE_ENDPOINTS.fullmatch(question):
+        resource = match["resource"].casefold().replace(" ", "-")
+        return sorted(
+            (
+                doc
+                for doc in candidates
+                if doc.payload["path"].strip("/").partition("/")[0].casefold()
+                in {resource, resource + "s"}
+            ),
+            key=lambda doc: (doc.payload["path"], doc.payload["method"]),
+        )
+
+    requested = intent(question)
+    if not (requested.contract and requested.validation) or tokens(question) & {
+        "example",
+        "examples",
+        "flow",
+        "flows",
+        "json",
+        "sample",
+        "scenario",
+        "scenarios",
+        "test",
+        "tests",
+        "why",
+    }:
+        return []
+    matches = {doc.id: doc for doc in _named_contracts(question, candidates)}
+    for doc in candidates:
+        method_path = f"{doc.payload['method']} {doc.payload['path']}"
+        if re.search(
+            r"(?<![\w/])" + re.escape(method_path) + r"(?=$|[\s`\"',?!;)]|\.(?=\s|$))",
+            question,
+            flags=re.IGNORECASE,
+        ):
+            matches[doc.id] = doc
+    return list(matches.values()) if len(matches) == 1 else []
 
 
 def policy_rules(document: Document) -> dict[str, Rule]:
@@ -78,15 +150,7 @@ def select_contract(question: str, documents: list[Document]) -> Document | None
     """Extracted evidence view: select only an unambiguous documented operation."""
     candidates = [d for d in documents if d.kind == "api_contract"]
     words = tokens(question)
-    exact = [
-        d
-        for d in candidates
-        if d.operation_id
-        and re.search(
-            r"(?<![a-z0-9])" + re.escape(d.operation_id.casefold()) + r"(?![a-z0-9])",
-            question.casefold(),
-        )
-    ]
+    exact = _named_contracts(question, candidates)
     if exact:
         return exact[0] if len(exact) == 1 else None
     methods = set()

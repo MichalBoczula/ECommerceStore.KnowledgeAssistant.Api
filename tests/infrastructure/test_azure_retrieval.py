@@ -1,3 +1,6 @@
+import json
+from types import SimpleNamespace
+
 import pytest
 from azure.core.exceptions import AzureError
 from fastapi.testclient import TestClient
@@ -6,6 +9,8 @@ from knowledge_assistant.api.app import create_app
 from knowledge_assistant.application.contracts import Query
 from knowledge_assistant.application.errors import DependencyUnavailableError
 from knowledge_assistant.domain.errors import EvidenceVerificationError
+from knowledge_assistant.infrastructure.configuration.settings import Settings
+from knowledge_assistant.infrastructure.ingestion.livedocs import documents_from_bundle
 from knowledge_assistant.infrastructure.retrieval.azure_indexer import AzureIndexer
 from knowledge_assistant.infrastructure.retrieval.azure_retriever import AzureRetriever
 from knowledge_assistant.infrastructure.retrieval.index_plan import plan_index
@@ -169,3 +174,143 @@ def test_http_query_returns_validation_then_the_exact_contract_from_hybrid_evide
     contract = next(d for d in corpus.documents if d.kind == "api_contract")
     assert answer["sections"][1]["requestSchema"] == contract.payload["requestSchema"]
     assert answer["sections"][1]["exampleRequest"] == contract.payload["exampleRequest"]
+
+
+INVOICE_ROUTES = {
+    "/invoices/{clientId}/{orderId}": ("post", "CreateInvoiceForOrder"),
+    "/invoices/{invoiceId}": ("get", "GetInvoiceById"),
+    "/invoices/{invoiceId}/pdf": ("get", "DownloadInvoicePdf"),
+    "/invoices/by-order/{orderId}": ("get", "GetInvoiceByOrderId"),
+    "/orders/{orderId}": ("get", "GetOrderById"),
+}
+
+
+@pytest.fixture
+def invoice_model_app(demo, cloud, tmp_path):
+    policy_name = "InvoiceValidationPolicy"
+    policy = {
+        "policyName": policy_name,
+        "rules": [
+            {
+                "ruleName": "InvoiceOrderStatusValidationRule",
+                "rules": [
+                    {"entity": "Order", "message": "Invoice can be created only for paid orders."}
+                ],
+            },
+        ],
+    }
+    files = {
+        "allure-results/invoice-result.json": {"uuid": "invoice-1", "status": "passed"},
+        "sources/openapi.json": {
+            "openapi": "3.0.1",
+            "paths": {
+                path: {method: {"operationId": operation, "summary": operation}}
+                for path, (method, operation) in INVOICE_ROUTES.items()
+            },
+        },
+        "sources/validation-policies.json": {
+            "validations": [
+                {policy_name: policy},
+                {"UnlinkedInvoicePolicy": {**policy, "policyName": "UnlinkedInvoicePolicy"}},
+            ],
+        },
+        "sources/operation-links.json": {
+            "operations": [{"operationId": "CreateInvoiceForOrder", "policies": [policy_name]}],
+        },
+        "sources/flows.json": [],
+    }
+    demo.corpus.documents.extend(
+        documents_from_bundle(
+            {"project": "invoices", "commitSha": "1" * 40},
+            {path: json.dumps(value).encode() for path, value in files.items()},
+            "demo-v1",
+            "1" * 64,
+            "demo",
+        )
+    )
+    retriever, index = prepared(demo, cloud, tmp_path)
+    # Simulate a hybrid search whose first results miss the requested operation and policy.
+    cloud.search.search_rows = [
+        row
+        for row in index.rows
+        if row["service"] == "invoices"
+        and retriever.documents[row["documentId"]].operation_id == "GetOrderById"
+    ]
+
+    def unexpected_model_call(*_):
+        pytest.fail("Explicit documented operations should be answered from source evidence")
+
+    def app(limit=12):
+        return create_app(
+            Settings(max_candidates=limit),
+            corpus=demo.corpus,
+            retriever=retriever,
+            planner=SimpleNamespace(mode="model", plan=unexpected_model_call),
+        )
+
+    return app
+
+
+@pytest.mark.parametrize("limit", [12, 2])
+def test_short_invoice_endpoint_query_lists_scoped_openapi_routes(invoice_model_app, limit):
+    with TestClient(invoice_model_app(limit)) as client:
+        response = client.post(
+            "/api/v1/query",
+            json={"question": "invoice endpoint", "service": "invoices", "snapshotId": "demo-v1"},
+        )
+
+    assert response.status_code == 200
+    answer = response.json()
+    assert answer["answerMode"] == "evidence" and answer["retrievalMode"] == "azure_hybrid"
+    assert answer["status"] == ("answered" if limit == 12 else "partial")
+    assert all(section["type"] == "api_contract" for section in answer["sections"])
+    assert [section["path"] for section in answer["sections"]] == sorted(
+        path for path in INVOICE_ROUTES if path.startswith("/invoices/")
+    )[:limit]
+    assert all(
+        source["path"].startswith("sources/openapi.json#/") and source["service"] == "invoices"
+        for source in answer["sources"]
+    )
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "What is the API endpoint for CreateInvoiceForOrder, and what validation rules apply? "
+        "Give the exact method, route, and documented rules.",
+        "Show the API endpoint and validation rules for `POST /invoices/{clientId}/{orderId}`.",
+    ],
+)
+def test_invoice_endpoint_with_validation_returns_original_linked_policy(
+    invoice_model_app, question
+):
+    with TestClient(invoice_model_app()) as client:
+        response = client.post(
+            "/api/v1/query",
+            json={
+                "question": question,
+                "service": "invoices",
+                "snapshotId": "demo-v1",
+            },
+        )
+
+    assert response.status_code == 200
+    answer = response.json()
+    assert answer["status"] == "answered" and answer["answerMode"] == "evidence"
+    validation, contract = answer["sections"]
+    assert validation["type"] == "validation" and contract["type"] == "api_contract"
+    assert (contract["method"], contract["path"], contract["operationId"]) == (
+        "POST",
+        "/invoices/{clientId}/{orderId}",
+        "CreateInvoiceForOrder",
+    )
+    assert [rule["description"] for rule in validation["rules"]] == [
+        "Invoice can be created only for paid orders.",
+    ]
+    sources = {source["id"]: source["path"] for source in answer["sources"]}
+    assert [sources[identity] for identity in validation["sourceIds"]] == [
+        "sources/validation-policies.json#/validations/0/InvoiceValidationPolicy",
+    ]
+    assert [sources[identity] for identity in contract["sourceIds"]] == [
+        "sources/openapi.json#/paths/~1invoices~1{clientId}~1{orderId}/post",
+    ]
