@@ -12,7 +12,10 @@ COPY ${CORPUS_FILE} /app/data/corpus.json
 ENV KA_CORPUS_PATH=/app/data/corpus.json
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-RUN useradd --uid 10001 --create-home appuser
+RUN useradd --uid 10001 --create-home appuser \
+    && chmod 0755 /app/data \
+    && chmod 0444 /app/data/corpus.json
 USER appuser
+RUN test -r "$KA_CORPUS_PATH"
 EXPOSE 8080
 CMD [".venv/bin/uvicorn", "knowledge_assistant.main:app", "--host", "0.0.0.0", "--port", "8080"]
