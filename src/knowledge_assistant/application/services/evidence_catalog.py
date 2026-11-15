@@ -5,15 +5,39 @@ import json
 import re
 from dataclasses import dataclass
 
+from knowledge_assistant.domain.api_operations import operation_actions
 from knowledge_assistant.domain.models import Document
 from knowledge_assistant.domain.text import FORMAT_TERMS, tokens
 
 from ..contracts import Rule
 
+INVENTORY_PREFIX = r"(?:show (?:me )?|list )?(?:the )?"
 RESOURCE_ENDPOINTS = re.compile(
-    r"(?:show (?:me )?|list )?(?:the )?(?P<resource>[\w-]+(?: [\w-]+)*) endpoints?[?.!]?$",
+    INVENTORY_PREFIX + r"(?P<resource>[\w-]+(?: [\w-]+)*) endpoints?[?.!]?$",
     re.IGNORECASE,
 )
+ENDPOINT_MATRIX = re.compile(
+    INVENTORY_PREFIX + r"(?:all (?:api )?endpoints|(?:api )?endpoint matrix)[?.!]?$",
+    re.IGNORECASE,
+)
+ACTION_QUESTION = re.compile(
+    r"(?:(?:how (?:to|do i|can i)|(?:which|what) (?:api )?endpoint (?:do i use )?to) )?"
+    r"(?P<verb>[a-z]+) (?P<target>.+)",
+    re.IGNORECASE,
+)
+MODEL_QUESTION_TERMS = {
+    "example",
+    "examples",
+    "flow",
+    "flows",
+    "json",
+    "sample",
+    "scenario",
+    "scenarios",
+    "test",
+    "tests",
+    "why",
+}
 
 
 @dataclass(frozen=True)
@@ -27,7 +51,8 @@ def intent(question: str) -> Intent:
     return Intent(
         bool(words & {"validation", "validate", "validations", "rules", "constraints"}),
         bool(
-            words
+            not requests_endpoint_matrix(question)
+            and words
             & {
                 "contract",
                 "contracts",
@@ -40,6 +65,46 @@ def intent(question: str) -> Intent:
             }
         ),
     )
+
+
+def requests_endpoint_matrix(question: str) -> bool:
+    return ENDPOINT_MATRIX.fullmatch(" ".join(question.split())) is not None
+
+
+def _route_order(doc: Document) -> tuple[str, str]:
+    return doc.payload["path"], doc.payload["method"]
+
+
+def _resource_terms(terms: set[str]) -> set[str]:
+    return {
+        term[:-1]
+        if len(term) > 3 and term.endswith("s") and not term.endswith(("ss", "us", "is"))
+        else term
+        for term in terms
+    }
+
+
+def _action_contracts(question: str, candidates: list[Document]) -> list[Document]:
+    match = ACTION_QUESTION.fullmatch(question)
+    if not match:
+        return []
+    verb = match["verb"].casefold()
+    terms = _resource_terms(
+        tokens(match["target"])
+        - FORMAT_TERMS
+        - {"all", "api", "by", "endpoint", "endpoints", "method", "operation", "route"}
+    )
+    if not terms:
+        return []
+    matches = []
+    for doc in candidates:
+        path, method = _route_order(doc)
+        responsibility = doc.payload.get("responsibility", doc.title)
+        if verb in operation_actions(method, doc.operation_id or "", responsibility) and (
+            terms <= _resource_terms(tokens(f"{path} {doc.operation_id or ''} {responsibility}"))
+        ):
+            matches.append(doc)
+    return sorted(matches, key=_route_order)
 
 
 def _named_contracts(question: str, candidates: list[Document]) -> list[Document]:
@@ -55,9 +120,11 @@ def _named_contracts(question: str, candidates: list[Document]) -> list[Document
 
 
 def lookup_contracts(question: str, documents: list[Document]) -> list[Document]:
-    """Find scoped operations for an endpoint list or an exact contract with validation."""
+    """Find scoped OpenAPI operations for a list, an action or an exact reference."""
     candidates = [doc for doc in documents if doc.kind == "api_contract"]
     question = " ".join(question.split())
+    if requests_endpoint_matrix(question):
+        return sorted(candidates, key=_route_order)
     if match := RESOURCE_ENDPOINTS.fullmatch(question):
         resource = match["resource"].casefold().replace(" ", "-")
         return sorted(
@@ -67,24 +134,14 @@ def lookup_contracts(question: str, documents: list[Document]) -> list[Document]
                 if doc.payload["path"].strip("/").partition("/")[0].casefold()
                 in {resource, resource + "s"}
             ),
-            key=lambda doc: (doc.payload["path"], doc.payload["method"]),
+            key=_route_order,
         )
 
-    requested = intent(question)
-    if not (requested.contract and requested.validation) or tokens(question) & {
-        "example",
-        "examples",
-        "flow",
-        "flows",
-        "json",
-        "sample",
-        "scenario",
-        "scenarios",
-        "test",
-        "tests",
-        "why",
-    }:
+    if tokens(question) & MODEL_QUESTION_TERMS:
         return []
+    requested = intent(question)
+    if not (requested.contract and requested.validation):
+        return _action_contracts(question, candidates)
     matches = {doc.id: doc for doc in _named_contracts(question, candidates)}
     for doc in candidates:
         method_path = f"{doc.payload['method']} {doc.payload['path']}"
@@ -94,7 +151,9 @@ def lookup_contracts(question: str, documents: list[Document]) -> list[Document]
             flags=re.IGNORECASE,
         ):
             matches[doc.id] = doc
-    return list(matches.values()) if len(matches) == 1 else []
+    if matches:
+        return list(matches.values()) if len(matches) == 1 else []
+    return _action_contracts(question, candidates)
 
 
 def policy_rules(document: Document) -> dict[str, Rule]:

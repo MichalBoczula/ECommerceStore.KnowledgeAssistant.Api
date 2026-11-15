@@ -6,6 +6,7 @@ from .evidence_catalog import (
     intent,
     lookup_contracts,
     policy_rules,
+    requests_endpoint_matrix,
     select_contract,
     select_policies,
 )
@@ -41,7 +42,25 @@ def plan_api_lookup(question: str, documents: list[Document], limit: int) -> Ans
     contracts = lookup_contracts(question, documents)
     if not contracts:
         return None
-    sections = [_contract_section(doc) for doc in contracts]
+    if requests_endpoint_matrix(question):
+        rows = [
+            f"{doc.payload['method']} {doc.payload['path']} — "
+            + doc.payload.get("responsibility", doc.title)
+            for doc in contracts
+        ]
+        sections = [
+            PlanSection(
+                type="explanation",
+                title="Endpoint matrix",
+                text="\n".join(rows),
+                rule_ids=[],
+                document_id=None,
+                generated_example_json=None,
+                source_ids=[doc.source.id for doc in contracts],
+            )
+        ]
+    else:
+        sections = [_contract_section(doc) for doc in contracts]
     if intent(question).validation:
         operations = {doc.operation_id for doc in contracts if doc.operation_id}
         for doc in documents:

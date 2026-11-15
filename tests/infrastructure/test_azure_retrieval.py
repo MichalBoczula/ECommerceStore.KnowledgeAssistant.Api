@@ -182,6 +182,15 @@ INVOICE_ROUTES = {
     "/invoices/{invoiceId}/pdf": ("get", "DownloadInvoicePdf"),
     "/invoices/by-order/{orderId}": ("get", "GetInvoiceByOrderId"),
     "/orders/{orderId}": ("get", "GetOrderById"),
+    "/orders/client/{clientId}": ("get", "GetOrdersByClientId"),
+    "/orders/{orderId}/status": ("patch", "UpdateOrderStatus"),
+    "/client-data-versions/{clientId}": ("post", "CreateClientDataVersion"),
+    "/client-data-versions/client/{clientId}": ("get", "GetClientDataVersionByClientId"),
+    "/orders-documentation/flows": ("get", "GetFlowDocumentation"),
+    "/orders-documentation/validations": ("get", "GetValidationDocumentation"),
+    "/shopping-carts/{clientId}": ("post", "CreateShoppingCart"),
+    "/shopping-carts/client/{clientId}": ("get", "GetShoppingCartByClientId"),
+    "/invoice-reports/filter": ("post", "FilterInvoices"),
 }
 
 
@@ -314,3 +323,53 @@ def test_invoice_endpoint_with_validation_returns_original_linked_policy(
     assert [sources[identity] for identity in contract["sourceIds"]] == [
         "sources/openapi.json#/paths/~1invoices~1{clientId}~1{orderId}/post",
     ]
+
+
+@pytest.mark.parametrize(
+    ("question", "operation_ids"),
+    [
+        ("How to create an invoice?", {"CreateInvoiceForOrder"}),
+        (
+            "How do I get an invoice?",
+            {"GetInvoiceById", "GetInvoiceByOrderId", "DownloadInvoicePdf"},
+        ),
+        ("How to get an invoice by order ID?", {"GetInvoiceByOrderId"}),
+        ("How to download an invoice PDF?", {"DownloadInvoicePdf"}),
+        ("How to search invoices?", {"FilterInvoices"}),
+    ],
+)
+def test_english_operation_lookup_uses_method_and_responsibility(
+    invoice_model_app, question, operation_ids
+):
+    with TestClient(invoice_model_app()) as client:
+        response = client.post(
+            "/api/v1/query",
+            json={"question": question, "service": "invoices", "snapshotId": "demo-v1"},
+        )
+    assert response.status_code == 200
+    answer = response.json()
+    assert answer["answerMode"] == "evidence"
+    assert {section["operationId"] for section in answer["sections"]} == operation_ids
+    assert {source["service"] for source in answer["sources"]} == {"invoices"}
+
+
+def test_endpoint_matrix_lists_every_scoped_operation_with_an_openapi_source(invoice_model_app):
+    with TestClient(invoice_model_app()) as client:
+        response = client.post(
+            "/api/v1/query",
+            json={
+                "question": "List all endpoints",
+                "service": "invoices",
+                "snapshotId": "demo-v1",
+            },
+        )
+    assert response.status_code == 200
+    answer = response.json()
+    assert answer["status"] == "answered"
+    (matrix,) = answer["sections"]
+    assert matrix["title"] == "Endpoint matrix"
+    assert matrix["content"].splitlines() == [
+        f"{method.upper()} {path} — {operation}"
+        for path, (method, operation) in sorted(INVOICE_ROUTES.items())
+    ]
+    assert len(matrix["sourceIds"]) == len(INVOICE_ROUTES) == len(answer["sources"])
