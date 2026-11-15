@@ -1,0 +1,326 @@
+{
+  "schemaVersion": 1,
+  "language": "en",
+  "cases": [
+    {
+      "faqId": "PROD-FAQ-01",
+      "question": "I need to add a handset to the catalog. What HTTP method and path should I call?"
+    },
+    {
+      "faqId": "PROD-FAQ-02",
+      "question": "Which JSON properties must be present when I submit a new handset?"
+    },
+    {
+      "faqId": "PROD-FAQ-03",
+      "question": "Would a display name or brand made entirely of spaces pass validation?"
+    },
+    {
+      "faqId": "PROD-FAQ-04",
+      "question": "Can I leave the processor or graphics processor empty when saving a handset?"
+    },
+    {
+      "faqId": "PROD-FAQ-05",
+      "question": "Can the catalog save a phone that costs nothing?"
+    },
+    {
+      "faqId": "PROD-FAQ-06",
+      "question": "Which list call lets me cap the catalog response at fifteen handsets?"
+    },
+    {
+      "faqId": "PROD-FAQ-07",
+      "question": "What determines the order of items in the regular catalog listing?"
+    },
+    {
+      "faqId": "PROD-FAQ-08",
+      "question": "I have a handset ID. Where do I fetch its full record?"
+    },
+    {
+      "faqId": "PROD-FAQ-09",
+      "question": "Does the single-device lookup still return a deactivated handset?"
+    },
+    {
+      "faqId": "PROD-FAQ-10",
+      "question": "What method and request body should I use for a batch of handset identifiers?"
+    },
+    {
+      "faqId": "PROD-FAQ-11",
+      "question": "If my batch contains a deactivated handset, will it appear in the results?"
+    },
+    {
+      "faqId": "PROD-FAQ-12",
+      "question": "Which route takes a brand and lower and upper price bounds in the same request?"
+    },
+    {
+      "faqId": "PROD-FAQ-13",
+      "question": "Will filtering work with a negative price bound or an upper bound below the lower one?"
+    },
+    {
+      "faqId": "PROD-FAQ-14",
+      "question": "Which paging inputs do I send when loading older revisions of a handset?"
+    },
+    {
+      "faqId": "PROD-FAQ-15",
+      "question": "If two revisions have the same change time, what breaks the sorting tie?"
+    },
+    {
+      "faqId": "PROD-FAQ-16",
+      "question": "What decides which three devices come back from the top phones route?"
+    },
+    {
+      "faqId": "PROD-FAQ-17",
+      "question": "I have a device ID and new details. Which method and URL save the changes?"
+    },
+    {
+      "faqId": "PROD-FAQ-18",
+      "question": "Does saving exactly the same phone details count as a successful update?"
+    },
+    {
+      "faqId": "PROD-FAQ-19",
+      "question": "How does the delete operation represent a removed handset in storage?"
+    },
+    {
+      "faqId": "PROD-FAQ-20",
+      "question": "How does the API handle a repeat delete for an already inactive phone?"
+    },
+    {
+      "faqId": "USER-FAQ-01",
+      "question": "Where should the application submit a new customer registration to the Users API?"
+    },
+    {
+      "faqId": "USER-FAQ-02",
+      "question": "Which members does a minimal customer registration payload need to include?"
+    },
+    {
+      "faqId": "USER-FAQ-03",
+      "question": "What does the API do if the companies collection is omitted or set to null at registration?"
+    },
+    {
+      "faqId": "USER-FAQ-04",
+      "question": "How does registration respond when the request includes individual: null?"
+    },
+    {
+      "faqId": "USER-FAQ-05",
+      "question": "Which address members must be present in the individual profile when I create a customer?"
+    },
+    {
+      "faqId": "USER-FAQ-06",
+      "question": "I have the identity provider’s account reference. Which Users operation returns the customer profile?"
+    },
+    {
+      "faqId": "USER-FAQ-07",
+      "question": "How does customer creation respond when the same account reference is submitted again?"
+    },
+    {
+      "faqId": "USER-FAQ-08",
+      "question": "What does the external-account lookup return for an account that has never registered?"
+    },
+    {
+      "faqId": "USER-FAQ-09",
+      "question": "Where should I send changes to an existing customer’s individual profile?"
+    },
+    {
+      "faqId": "USER-FAQ-10",
+      "question": "Which request attaches a new business profile to a customer record?"
+    },
+    {
+      "faqId": "USER-FAQ-11",
+      "question": "How do I address a specific company record inside a customer profile when editing it?"
+    },
+    {
+      "faqId": "USER-FAQ-12",
+      "question": "How does the company-add operation handle a duplicate tax identifier?"
+    },
+    {
+      "faqId": "USER-FAQ-13",
+      "question": "How does Users signal a concurrent write when personal details are being saved?"
+    },
+    {
+      "faqId": "USER-FAQ-14",
+      "question": "Which Users API route should I call to register an admin account profile?"
+    },
+    {
+      "faqId": "USER-FAQ-15",
+      "question": "If I look up an administrator by external account reference, is a login recorded?"
+    },
+    {
+      "faqId": "USER-FAQ-16",
+      "question": "How can the UI load all the products a client has favorited?"
+    },
+    {
+      "faqId": "USER-FAQ-17",
+      "question": "Which method and input are needed to bookmark a product for a client?"
+    },
+    {
+      "faqId": "USER-FAQ-18",
+      "question": "What result should the frontend expect when a client already has that product saved?"
+    },
+    {
+      "faqId": "USER-FAQ-19",
+      "question": "I need to unbookmark a single item. Which identifiers go in the delete URL?"
+    },
+    {
+      "faqId": "USER-FAQ-20",
+      "question": "How can I empty a client’s favorites list in a single API call?"
+    },
+    {
+      "faqId": "INV-FAQ-01",
+      "question": "I have the customer ID and order ID. What request starts invoice generation?"
+    },
+    {
+      "faqId": "INV-FAQ-02",
+      "question": "What order status does the invoice validation policy require?"
+    },
+    {
+      "faqId": "INV-FAQ-03",
+      "question": "How does invoice creation respond when the order belongs to a different customer?"
+    },
+    {
+      "faqId": "INV-FAQ-04",
+      "question": "If I submit the same completed order for invoicing again, what response should I expect?"
+    },
+    {
+      "faqId": "INV-FAQ-05",
+      "question": "If another worker already holds the generation claim, what happens to a second request?"
+    },
+    {
+      "faqId": "INV-FAQ-06",
+      "question": "Which API call returns the metadata for a specific invoice identifier?"
+    },
+    {
+      "faqId": "INV-FAQ-07",
+      "question": "What route maps an order identifier to its invoice record?"
+    },
+    {
+      "faqId": "INV-FAQ-08",
+      "question": "Can I see an unfinished or failed invoice reservation through the order lookup?"
+    },
+    {
+      "faqId": "INV-FAQ-09",
+      "question": "I need the actual invoice file. What request should I make and what media type should I expect?"
+    },
+    {
+      "faqId": "INV-FAQ-10",
+      "question": "How does the download route respond if invoice metadata exists and storage cannot find the file?"
+    },
+    {
+      "faqId": "INV-FAQ-11",
+      "question": "Given a client ID, how can I get that customer’s current cart?"
+    },
+    {
+      "faqId": "INV-FAQ-12",
+      "question": "What request initializes a cart for a customer who has none?"
+    },
+    {
+      "faqId": "INV-FAQ-13",
+      "question": "When I send a new cart payload, what happens to the lines that were already stored?"
+    },
+    {
+      "faqId": "INV-FAQ-14",
+      "question": "Can a cart item have a quantity of zero or less?"
+    },
+    {
+      "faqId": "INV-FAQ-15",
+      "question": "What API call turns a customer’s existing cart into an order?"
+    },
+    {
+      "faqId": "INV-FAQ-16",
+      "question": "After checkout creates an order from the cart, which cart items remain?"
+    },
+    {
+      "faqId": "INV-FAQ-17",
+      "question": "Which request returns a customer’s order history by client ID?"
+    },
+    {
+      "faqId": "INV-FAQ-18",
+      "question": "When an order is in Created state, which status updates can the API accept?"
+    },
+    {
+      "faqId": "INV-FAQ-19",
+      "question": "Which endpoint appends a client data version for future invoicing?"
+    },
+    {
+      "faqId": "INV-FAQ-20",
+      "question": "What request returns the most recent billing profile recorded for a customer?"
+    },
+    {
+      "faqId": "PAY-FAQ-01",
+      "question": "I have an order ID and need to open Stripe Checkout. What method and route should I call?"
+    },
+    {
+      "faqId": "PAY-FAQ-02",
+      "question": "What should the caller send besides the order ID when starting hosted checkout?"
+    },
+    {
+      "faqId": "PAY-FAQ-03",
+      "question": "Which response field should the frontend use to send the customer to Stripe?"
+    },
+    {
+      "faqId": "PAY-FAQ-04",
+      "question": "Which order data supplies the charge, and how does the VAT setting affect the final amount?"
+    },
+    {
+      "faqId": "PAY-FAQ-05",
+      "question": "Which state must an order be in before Payments can reserve a fresh Stripe session?"
+    },
+    {
+      "faqId": "PAY-FAQ-06",
+      "question": "Which rules can make an order total unsuitable for a Stripe session?"
+    },
+    {
+      "faqId": "PAY-FAQ-07",
+      "question": "Can a repeated checkout request recover the existing Stripe session?"
+    },
+    {
+      "faqId": "PAY-FAQ-08",
+      "question": "If the provider never answers the session request, what response do I get and how can I safely repeat the call?"
+    },
+    {
+      "faqId": "PAY-FAQ-09",
+      "question": "What route should I call to submit the baseline Pay operation by order ID?"
+    },
+    {
+      "faqId": "PAY-FAQ-10",
+      "question": "What request returns the current payment state using the order identifier?"
+    },
+    {
+      "faqId": "PAY-FAQ-11",
+      "question": "If nothing has been paid or reserved for an order, what does the read endpoint return?"
+    },
+    {
+      "faqId": "PAY-FAQ-12",
+      "question": "Where does the Stripe webhook deliver its Checkout notifications to Payments?"
+    },
+    {
+      "faqId": "PAY-FAQ-13",
+      "question": "What result does the webhook return when the event’s signature fails verification?"
+    },
+    {
+      "faqId": "PAY-FAQ-14",
+      "question": "Does a completed Checkout event immediately mark the payment successful if the money has not cleared?"
+    },
+    {
+      "faqId": "PAY-FAQ-15",
+      "question": "What Stripe event should Payments use when a delayed checkout payment finally succeeds?"
+    },
+    {
+      "faqId": "PAY-FAQ-16",
+      "question": "How does processing the same notification twice affect payment history and fulfillment work?"
+    },
+    {
+      "faqId": "PAY-FAQ-17",
+      "question": "What happens to the payment and order when an abandoned Stripe session expires?"
+    },
+    {
+      "faqId": "PAY-FAQ-18",
+      "question": "Is the redirect back from Stripe enough to change payment state?"
+    },
+    {
+      "faqId": "PAY-FAQ-19",
+      "question": "How does a successful Stripe payment lead to a paid order and an invoice?"
+    },
+    {
+      "faqId": "PAY-FAQ-20",
+      "question": "How does fulfillment recover from an invoice failure once the Paid update has succeeded?"
+    }
+  ]
+}

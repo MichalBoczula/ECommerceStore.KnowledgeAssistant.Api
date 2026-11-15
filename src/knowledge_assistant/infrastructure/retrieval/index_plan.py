@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from knowledge_assistant.domain.faq import faq_aliases
 from knowledge_assistant.domain.models import Corpus, Document
 
 from ..configuration.settings import Settings
@@ -95,6 +96,12 @@ class IndexPlan:
         }
 
 
+def document_chunks(document: Document):
+    yield from chunk_text(document.title, document.content)
+    if aliases := faq_aliases(document):
+        yield from chunk_text(document.title, "FAQ questions\n" + "\n".join(aliases.values()))
+
+
 def plan_index(corpus: Corpus, settings: Settings) -> IndexPlan:
     if not corpus.documents or len({d.id for d in corpus.documents}) != len(corpus.documents):
         raise ValueError("Indexing requires a nonempty corpus with unique document IDs")
@@ -104,7 +111,7 @@ def plan_index(corpus: Corpus, settings: Settings) -> IndexPlan:
         if doc.source.snapshot_id != corpus.snapshot_id or not doc.source.service:
             raise ValueError("Document identity differs from the selected corpus")
         fingerprint = document_hash(doc)
-        for part, text in enumerate(chunk_text(doc.title, doc.content)):
+        for part, text in enumerate(document_chunks(doc)):
             rows.append(
                 {
                     "id": "chunk-" + digest(f"{sha}:{profile}:{doc.id}:{part}".encode()),

@@ -1,5 +1,6 @@
 from knowledge_assistant.application.contracts import Query
 from knowledge_assistant.application.services.evidence_catalog import intent
+from knowledge_assistant.domain.faq import faq_aliases
 from knowledge_assistant.domain.models import Corpus, Document
 from knowledge_assistant.domain.text import FORMAT_TERMS, tokens
 
@@ -14,15 +15,22 @@ class LocalRetriever:
 
     def search(self, query: Query, limit: int = 12) -> list[Document]:
         terms = tokens(query.question) - FORMAT_TERMS
+        faq_terms = terms - {"i", "api", "call", "endpoint", "method", "response", "route"}
         requested = intent(query.question)
         scored = []
         for doc in self.corpus.documents:
             if doc.source.service != query.service or doc.source.snapshot_id != query.snapshot_id:
                 continue
             matched = terms & tokens(doc.title + " " + doc.content)
-            if not matched:
+            alias_match = max(
+                (len(faq_terms & tokens(question)) for question in faq_aliases(doc).values()),
+                default=0,
+            )
+            if not matched and alias_match < 2:
                 continue
             score = len(matched) + len(terms & tokens(doc.title)) * 3
+            if alias_match >= 2:
+                score += alias_match * 2
             # Direct typed evidence must compete with verbose, repeated execution records.
             if doc.kind == "validation" and requested.validation:
                 score += 12

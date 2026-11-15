@@ -300,10 +300,33 @@ def test_feature_only_links_keep_their_granularity_and_source_urls(bundle_factor
     assert all(d.id in link.payload["relatedDocumentIds"] for d in scenarios)
     assert (
         scenarios[0].source.url
-        == "https://docs.example.test/livedoc/v1/products/bdd/mobile.feature"
+        == "https://docs.example.test/livedoc/v1/products/#:~:text=BDD%20scenarios"
     )
+    assert scenarios[0].source.path.startswith("bdd/mobile.feature#case-")
     assert link.source.url.endswith("/products/operation-links.json")
     assert link.payload["provenance"]["sourceFileSha256"]
+
+
+def test_openapi_responsibility_and_documented_action_are_searchable(bundle_factory):
+    spec = {
+        "openapi": "3.0.1",
+        "paths": {
+            "/items": {
+                "get": {"operationId": "GetItems", "description": "Returns visible items."},
+                "post": {"operationId": "CreateItem", "summary": "Create an item."},
+            },
+            "/items/filter": {
+                "post": {"operationId": "FilterItems", "summary": "Find matching items."},
+            },
+        },
+    }
+    docs, _, _ = imported(bundle_factory, {"sources/openapi.json": spec})
+    contracts = {doc.operation_id: doc for doc in docs if doc.kind == "api_contract"}
+    assert contracts["GetItems"].payload["responsibility"] == "Returns visible items."
+    assert "Action keywords: get, read, fetch, retrieve" in contracts["GetItems"].content
+    assert "Responsibility: Create an item." in contracts["CreateItem"].content
+    assert "Action keywords: post, create, register, add" in contracts["CreateItem"].content
+    assert "Action keywords: post, search, filter, query" in contracts["FilterItems"].content
 
 
 def test_contract_retains_raw_refs_and_resolved_schema_without_inventing_example(bundle_factory):

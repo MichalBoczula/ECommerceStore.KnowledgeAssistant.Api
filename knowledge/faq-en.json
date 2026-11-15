@@ -1,0 +1,726 @@
+{
+  "schemaVersion": 1,
+  "language": "en",
+  "entries": [
+    {
+      "id": "PROD-FAQ-01",
+      "service": "products",
+      "question": "Which endpoint creates a mobile phone?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateMobilePhone"
+      }
+    },
+    {
+      "id": "PROD-FAQ-02",
+      "service": "products",
+      "question": "What fields are required in the create-phone request body?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateMobilePhone"
+      }
+    },
+    {
+      "id": "PROD-FAQ-03",
+      "service": "products",
+      "question": "Can a phone name or brand be blank?",
+      "target": {
+        "kind": "validation",
+        "reference": "MobilePhonesValidationPolicy"
+      }
+    },
+    {
+      "id": "PROD-FAQ-04",
+      "service": "products",
+      "question": "What are the rules for the CPU and GPU fields?",
+      "target": {
+        "kind": "validation",
+        "reference": "ElectronicDetailsValidationPolicy"
+      }
+    },
+    {
+      "id": "PROD-FAQ-05",
+      "service": "products",
+      "question": "Is a price of zero valid for a mobile phone?",
+      "target": {
+        "kind": "validation",
+        "reference": "AmountValidationPolicy"
+      }
+    },
+    {
+      "id": "PROD-FAQ-06",
+      "service": "products",
+      "question": "How do I request up to 15 active phones?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetMobilePhones"
+      }
+    },
+    {
+      "id": "PROD-FAQ-07",
+      "service": "products",
+      "question": "How is the standard phone list sorted?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetMobilePhones"
+      }
+    },
+    {
+      "id": "PROD-FAQ-08",
+      "service": "products",
+      "question": "Which endpoint returns the details of one phone by ID?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetMobilePhoneById"
+      }
+    },
+    {
+      "id": "PROD-FAQ-09",
+      "service": "products",
+      "question": "Can I fetch an inactive phone if I know its ID?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetMobilePhoneById"
+      }
+    },
+    {
+      "id": "PROD-FAQ-10",
+      "service": "products",
+      "question": "How do I look up several phone IDs in one request?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetMobilePhonesByIds"
+      }
+    },
+    {
+      "id": "PROD-FAQ-11",
+      "service": "products",
+      "question": "What happens to inactive phones in a bulk lookup?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetMobilePhonesByIds"
+      }
+    },
+    {
+      "id": "PROD-FAQ-12",
+      "service": "products",
+      "question": "How do I filter phones by brand and price range?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetFiltered MobilePhones"
+      }
+    },
+    {
+      "id": "PROD-FAQ-13",
+      "service": "products",
+      "question": "What makes a phone price range invalid?",
+      "target": {
+        "kind": "validation",
+        "reference": "MobilePhoneFilterValidationPolicy"
+      }
+    },
+    {
+      "id": "PROD-FAQ-14",
+      "service": "products",
+      "question": "How do I paginate a phone’s change history?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetMobilePhoneHistory"
+      }
+    },
+    {
+      "id": "PROD-FAQ-15",
+      "service": "products",
+      "question": "How are phone history entries ordered when their timestamps match?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetMobilePhoneHistory"
+      }
+    },
+    {
+      "id": "PROD-FAQ-16",
+      "service": "products",
+      "question": "How does the catalog choose the phones shown in its top list?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetTopMobilePhones"
+      }
+    },
+    {
+      "id": "PROD-FAQ-17",
+      "service": "products",
+      "question": "What request updates an existing phone?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "UpdateMobilePhone"
+      }
+    },
+    {
+      "id": "PROD-FAQ-18",
+      "service": "products",
+      "question": "What happens when I send an update with identical values?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "UpdateMobilePhone"
+      }
+    },
+    {
+      "id": "PROD-FAQ-19",
+      "service": "products",
+      "question": "What happens to the catalog record when a phone is deleted?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "DeleteMobilePhone"
+      }
+    },
+    {
+      "id": "PROD-FAQ-20",
+      "service": "products",
+      "question": "What if I delete the same handset twice?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "DeleteMobilePhone"
+      }
+    },
+    {
+      "id": "USER-FAQ-01",
+      "service": "users",
+      "question": "Which endpoint creates a customer profile?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateCustomer"
+      }
+    },
+    {
+      "id": "USER-FAQ-02",
+      "service": "users",
+      "question": "What top-level JSON fields are required to create a customer?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateCustomer"
+      }
+    },
+    {
+      "id": "USER-FAQ-03",
+      "service": "users",
+      "question": "Can I register a customer without company details?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateCustomer"
+      }
+    },
+    {
+      "id": "USER-FAQ-04",
+      "service": "users",
+      "question": "What happens if the individual profile is explicitly null?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateCustomer"
+      }
+    },
+    {
+      "id": "USER-FAQ-05",
+      "service": "users",
+      "question": "What fields are required in a customer’s billing and shipping addresses?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateCustomer"
+      }
+    },
+    {
+      "id": "USER-FAQ-06",
+      "service": "users",
+      "question": "How do I retrieve a customer by their external account ID?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetCustomerByExternalId"
+      }
+    },
+    {
+      "id": "USER-FAQ-07",
+      "service": "users",
+      "question": "What if I register an external ID that already belongs to a customer?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateCustomer"
+      }
+    },
+    {
+      "id": "USER-FAQ-08",
+      "service": "users",
+      "question": "What response do I get when an external ID has no customer profile?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetCustomerByExternalId"
+      }
+    },
+    {
+      "id": "USER-FAQ-09",
+      "service": "users",
+      "question": "Which endpoint updates a customer’s personal details?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "UpdateIndividualData"
+      }
+    },
+    {
+      "id": "USER-FAQ-10",
+      "service": "users",
+      "question": "How do I add a company to an existing customer?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "AddCompany"
+      }
+    },
+    {
+      "id": "USER-FAQ-11",
+      "service": "users",
+      "question": "Which IDs do I need to update one of a customer’s companies?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "UpdateCompany"
+      }
+    },
+    {
+      "id": "USER-FAQ-12",
+      "service": "users",
+      "question": "What happens if I add a company with a tax ID the customer already uses?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "AddCompany"
+      }
+    },
+    {
+      "id": "USER-FAQ-13",
+      "service": "users",
+      "question": "What if two requests update the same individual profile at the same time?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "UpdateIndividualData"
+      }
+    },
+    {
+      "id": "USER-FAQ-14",
+      "service": "users",
+      "question": "How do I create an administrator profile?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateAdmin"
+      }
+    },
+    {
+      "id": "USER-FAQ-15",
+      "service": "users",
+      "question": "Does reading an admin profile change its last-login timestamp?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetAdminByExternalId"
+      }
+    },
+    {
+      "id": "USER-FAQ-16",
+      "service": "users",
+      "question": "Which endpoint lists a customer’s saved favorites?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetFavoritesByClientId"
+      }
+    },
+    {
+      "id": "USER-FAQ-17",
+      "service": "users",
+      "question": "What request adds one product to favorites?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "AddProductToFavorites"
+      }
+    },
+    {
+      "id": "USER-FAQ-18",
+      "service": "users",
+      "question": "How does Users respond when the same product is favorited twice?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "AddProductToFavorites"
+      }
+    },
+    {
+      "id": "USER-FAQ-19",
+      "service": "users",
+      "question": "How do I remove one product from a client’s favorites?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "RemoveProductFromFavorites"
+      }
+    },
+    {
+      "id": "USER-FAQ-20",
+      "service": "users",
+      "question": "Which operation clears all favorites for one customer?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "ClearClientFavorites"
+      }
+    },
+    {
+      "id": "INV-FAQ-01",
+      "service": "invoices",
+      "question": "Which endpoint creates an invoice for an order?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateInvoiceForOrder"
+      }
+    },
+    {
+      "id": "INV-FAQ-02",
+      "service": "invoices",
+      "question": "Can I create an invoice before the order is paid?",
+      "target": {
+        "kind": "validation",
+        "reference": "InvoiceValidationPolicy"
+      }
+    },
+    {
+      "id": "INV-FAQ-03",
+      "service": "invoices",
+      "question": "What if the client in the invoice request does not own the order?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateInvoiceForOrder"
+      }
+    },
+    {
+      "id": "INV-FAQ-04",
+      "service": "invoices",
+      "question": "What happens when I try to invoice an order that already has a completed invoice?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateInvoiceForOrder"
+      }
+    },
+    {
+      "id": "INV-FAQ-05",
+      "service": "invoices",
+      "question": "How does the service handle two invoice generation requests for the same order at once?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateInvoiceForOrder"
+      }
+    },
+    {
+      "id": "INV-FAQ-06",
+      "service": "invoices",
+      "question": "How do I retrieve invoice details by invoice ID?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetInvoiceById"
+      }
+    },
+    {
+      "id": "INV-FAQ-07",
+      "service": "invoices",
+      "question": "How do I find the completed invoice when I only know the order ID?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetInvoiceByOrderId"
+      }
+    },
+    {
+      "id": "INV-FAQ-08",
+      "service": "invoices",
+      "question": "What does invoice-by-order return while generation is pending or has failed?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetInvoiceByOrderId"
+      }
+    },
+    {
+      "id": "INV-FAQ-09",
+      "service": "invoices",
+      "question": "Which endpoint downloads an invoice PDF and what content type does it return?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "DownloadInvoicePdf"
+      }
+    },
+    {
+      "id": "INV-FAQ-10",
+      "service": "invoices",
+      "question": "What happens when an invoice exists but its PDF file is missing?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "DownloadInvoicePdf"
+      }
+    },
+    {
+      "id": "INV-FAQ-11",
+      "service": "invoices",
+      "question": "Which endpoint retrieves the shopping cart for a client?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetShoppingCartByClientId"
+      }
+    },
+    {
+      "id": "INV-FAQ-12",
+      "service": "invoices",
+      "question": "How do I create an empty shopping cart for a new client?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateShoppingCart"
+      }
+    },
+    {
+      "id": "INV-FAQ-13",
+      "service": "invoices",
+      "question": "How are existing cart lines handled when I submit an updated set of items?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "UpdateShoppingCart"
+      }
+    },
+    {
+      "id": "INV-FAQ-14",
+      "service": "invoices",
+      "question": "What quantity is valid for a shopping cart line?",
+      "target": {
+        "kind": "validation",
+        "reference": "ShoppingCartLineValidationPolicy"
+      }
+    },
+    {
+      "id": "INV-FAQ-15",
+      "service": "invoices",
+      "question": "Which endpoint creates an order from a client’s current cart?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateOrder"
+      }
+    },
+    {
+      "id": "INV-FAQ-16",
+      "service": "invoices",
+      "question": "What happens to the cart after successful order creation?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateOrder"
+      }
+    },
+    {
+      "id": "INV-FAQ-17",
+      "service": "invoices",
+      "question": "How do I list all orders belonging to one client?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetOrdersByClientId"
+      }
+    },
+    {
+      "id": "INV-FAQ-18",
+      "service": "invoices",
+      "question": "Which order status transitions are allowed?",
+      "target": {
+        "kind": "validation",
+        "reference": "UpdateOrderValidationPolicy"
+      }
+    },
+    {
+      "id": "INV-FAQ-19",
+      "service": "invoices",
+      "question": "How do I store a new version of a client’s invoice details?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "CreateClientDataVersion"
+      }
+    },
+    {
+      "id": "INV-FAQ-20",
+      "service": "invoices",
+      "question": "How do I retrieve the latest client data version by client ID?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "GetClientDataVersionByClientId"
+      }
+    },
+    {
+      "id": "PAY-FAQ-01",
+      "service": "payments",
+      "question": "Which endpoint starts a hosted Stripe Checkout session?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "createOrderCheckout"
+      }
+    },
+    {
+      "id": "PAY-FAQ-02",
+      "service": "payments",
+      "question": "Does the hosted checkout request need a JSON body?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "createOrderCheckout"
+      }
+    },
+    {
+      "id": "PAY-FAQ-03",
+      "service": "payments",
+      "question": "Where is the hosted checkout URL in the API response?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "createOrderCheckout"
+      }
+    },
+    {
+      "id": "PAY-FAQ-04",
+      "service": "payments",
+      "question": "How does Payments calculate the Stripe charge when VAT is enabled?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "createOrderCheckout"
+      }
+    },
+    {
+      "id": "PAY-FAQ-05",
+      "service": "payments",
+      "question": "What order status is required to start a new checkout attempt?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "createOrderCheckout"
+      }
+    },
+    {
+      "id": "PAY-FAQ-06",
+      "service": "payments",
+      "question": "What currency and amount constraints apply to sandbox checkout?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "createOrderCheckout"
+      }
+    },
+    {
+      "id": "PAY-FAQ-07",
+      "service": "payments",
+      "question": "What happens if I call checkout twice for the same order?",
+      "target": {
+        "kind": "scenario",
+        "reference": "PAY05-04"
+      }
+    },
+    {
+      "id": "PAY-FAQ-08",
+      "service": "payments",
+      "question": "What happens if Stripe times out during checkout creation, and how should I retry?",
+      "target": {
+        "kind": "scenario",
+        "reference": "PAY06-02"
+      }
+    },
+    {
+      "id": "PAY-FAQ-09",
+      "service": "payments",
+      "question": "Which endpoint handles the direct pay command for an order?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "payOrder"
+      }
+    },
+    {
+      "id": "PAY-FAQ-10",
+      "service": "payments",
+      "question": "How do I read the payment record for an order?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "getPaymentByOrderId"
+      }
+    },
+    {
+      "id": "PAY-FAQ-11",
+      "service": "payments",
+      "question": "What response does payment lookup return when an order has no payment record?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "getPaymentByOrderId"
+      }
+    },
+    {
+      "id": "PAY-FAQ-12",
+      "service": "payments",
+      "question": "Which endpoint receives signed Stripe Checkout events?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "receiveStripeWebhook"
+      }
+    },
+    {
+      "id": "PAY-FAQ-13",
+      "service": "payments",
+      "question": "How does Payments respond to a missing or invalid Stripe signature?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "receiveStripeWebhook"
+      }
+    },
+    {
+      "id": "PAY-FAQ-14",
+      "service": "payments",
+      "question": "What happens when Stripe sends checkout.session.completed while the session is still unpaid?",
+      "target": {
+        "kind": "scenario",
+        "reference": "PAY22-15"
+      }
+    },
+    {
+      "id": "PAY-FAQ-15",
+      "service": "payments",
+      "question": "Which event confirms a successful asynchronous Checkout payment?",
+      "target": {
+        "kind": "scenario",
+        "reference": "PAY08-01"
+      }
+    },
+    {
+      "id": "PAY-FAQ-16",
+      "service": "payments",
+      "question": "What happens when Stripe redelivers the same webhook event ID?",
+      "target": {
+        "kind": "scenario",
+        "reference": "PAY22-09"
+      }
+    },
+    {
+      "id": "PAY-FAQ-17",
+      "service": "payments",
+      "question": "How does Payments handle an expired Checkout session?",
+      "target": {
+        "kind": "scenario",
+        "reference": "PAY22-07"
+      }
+    },
+    {
+      "id": "PAY-FAQ-18",
+      "service": "payments",
+      "question": "Can the browser’s checkout success page confirm that the order is paid?",
+      "target": {
+        "kind": "api_contract",
+        "reference": "receiveStripeWebhook"
+      }
+    },
+    {
+      "id": "PAY-FAQ-19",
+      "service": "payments",
+      "question": "What does the fulfillment worker do after a verified payment succeeds?",
+      "target": {
+        "kind": "scenario",
+        "reference": "PAY09-33"
+      }
+    },
+    {
+      "id": "PAY-FAQ-20",
+      "service": "payments",
+      "question": "What happens if invoice creation fails after the worker has already marked the order paid?",
+      "target": {
+        "kind": "scenario",
+        "reference": "PAY09-36"
+      }
+    }
+  ]
+}

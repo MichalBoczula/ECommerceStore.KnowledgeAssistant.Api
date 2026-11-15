@@ -6,6 +6,8 @@ from ..errors import ResourceNotFoundError, SnapshotNotActiveError
 from ..planning import AnswerPlan
 from ..ports import AnswerPlanner, KnowledgeRetriever
 from .answer_assembler import assemble
+from .evidence_catalog import requests_endpoint_matrix
+from .evidence_planner import plan_api_lookup
 
 
 class KnowledgeService:
@@ -40,23 +42,27 @@ class KnowledgeService:
             raise SnapshotNotActiveError()
         if body.service not in {d.source.service for d in self.corpus.documents}:
             raise ResourceNotFoundError()
-        documents = self.retriever.search(body, self.max_candidates)
+        limit = 50 if requests_endpoint_matrix(body.question) else self.max_candidates
+        documents = self.retriever.search(body, limit)
         if any(
             d.source.snapshot_id != body.snapshot_id or d.source.service != body.service
             for d in documents
         ):
             raise EvidenceVerificationError("Evidence escaped the requested scope")
-        plan = (
-            self.planner.plan(body.question, documents)
-            if documents
-            else AnswerPlan(
+        answer_mode = self.planner.mode
+        if not documents:
+            plan = AnswerPlan(
                 status="not_found",
                 sections=[],
                 limitations=[
                     "No supporting evidence was found in the selected service and snapshot."
                 ],
             )
-        )
+        elif lookup := plan_api_lookup(body.question, documents, limit):
+            plan = lookup
+            answer_mode = "evidence"
+        else:
+            plan = self.planner.plan(body.question, documents)
         return assemble(
-            body, documents, plan, self.planner.mode, self.retriever.mode, self.corpus.is_demo
+            body, documents, plan, answer_mode, self.retriever.mode, self.corpus.is_demo
         )

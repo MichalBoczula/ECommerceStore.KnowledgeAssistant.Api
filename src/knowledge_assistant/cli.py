@@ -10,6 +10,7 @@ from openai import OpenAIError
 from .application.contracts import Answer
 from .infrastructure.clients.embeddings import EmbeddingCache
 from .infrastructure.configuration.settings import Settings
+from .infrastructure.ingestion.faq import FaqCatalog, attach_faq
 from .infrastructure.ingestion.json_source import read
 from .infrastructure.ingestion.livedocs import ingest_manifest
 from .infrastructure.ingestion.publication import publish_import
@@ -36,6 +37,7 @@ def main() -> None:
         "--strict-links", action="store_true", help="Fail on reconciliation warnings"
     )
     ingest.add_argument("--livedocs-base-url", default="")
+    ingest.add_argument("--faq-catalog", type=Path, help="Reviewed English FAQ question aliases")
     for name in ("plan-index", "index"):
         command = commands.add_parser(name)
         command.add_argument("--corpus", type=Path, required=True)
@@ -53,8 +55,31 @@ def main() -> None:
     evaluation.add_argument("--retrieval-mode", choices=["local", "azure"], default="local")
     evaluation.add_argument("--generation-mode", choices=["evidence", "azure"], default="evidence")
     evaluation.add_argument("--allow-demo", action="store_true")
+    faq_evaluation = commands.add_parser(
+        "evaluate-faq", help="Measure retrieval on unseen FAQ wording"
+    )
+    faq_evaluation.add_argument("--suite", type=Path, required=True)
+    faq_evaluation.add_argument("--corpus", type=Path, required=True)
+    faq_evaluation.add_argument("--ingestion-report", type=Path, required=True)
+    faq_evaluation.add_argument(
+        "--report", type=Path, default=Path("artifacts/faq-evaluation.json")
+    )
+    faq_evaluation.add_argument("--retrieval-mode", choices=["local", "azure"], default="local")
+    faq_evaluation.add_argument("--allow-demo", action="store_true")
     commands.add_parser("export-contract")
     args = parser.parse_args()
+    if args.command == "evaluate-faq":
+        from .infrastructure.evaluation.command import run_faq_evaluation
+
+        try:
+            report = run_faq_evaluation(args)
+        except (ValueError, OSError, KeyError, TypeError, AzureError, OpenAIError):
+            parser.exit(
+                2,
+                "FAQ evaluation setup failed. Check the corpus, suite and retrieval settings.\n",
+            )
+        print(json.dumps({key: value for key, value in report.items() if key != "cases"}, indent=2))
+        return
     if args.command == "evaluate":
         from .infrastructure.evaluation.command import run_evaluation
 
@@ -102,10 +127,15 @@ def main() -> None:
         if args.manifest_commit and not re.fullmatch(r"[0-9a-f]{40}", args.manifest_commit):
             parser.error("--manifest-commit must be a full lowercase Git SHA")
         inputs = {args.manifest.resolve(), args.projects.resolve()}
+        if args.faq_catalog:
+            inputs.add(args.faq_catalog.resolve())
         outputs = {args.output.resolve(), args.report.resolve()}
         if len(outputs) != 2 or inputs & outputs:
             parser.error("Corpus, report and input manifests must use different paths")
         try:
+            catalog = (
+                FaqCatalog.model_validate(read(args.faq_catalog)) if args.faq_catalog else None
+            )
             services = []
             corpus = ingest_manifest(
                 read(args.manifest),
@@ -120,6 +150,8 @@ def main() -> None:
                 raise ValueError(
                     "Strict reconciliation failed; corpus and report were not published"
                 )
+            if catalog:
+                attach_faq(corpus, catalog)
             report = publish_import(
                 corpus, services, args.output, args.report, args.manifest_commit
             )
@@ -136,6 +168,7 @@ def main() -> None:
                         "snapshotId",
                         "documents",
                         "documentsByKind",
+                        "faqAliases",
                         "corpusBytes",
                         "warnings",
                     )

@@ -12,6 +12,7 @@ from gherkin.errors import CompositeParserException
 from gherkin.parser import Parser
 from gherkin.pickles.compiler import Compiler
 
+from knowledge_assistant.domain.api_operations import operation_actions
 from knowledge_assistant.domain.models import Corpus, Document, Source
 
 from .json_source import loads
@@ -160,6 +161,7 @@ def documents_from_bundle(
     documents: list[Document] = []
     execution_ids: set[str] = set()
     service = metadata["project"]
+    service_url = f"{base_url.rstrip('/')}/livedoc/{version}/{service}/" if base_url else ""
 
     def add(
         kind: str,
@@ -171,6 +173,13 @@ def documents_from_bundle(
         tags: list[str] | None = None,
     ) -> None:
         identity = digest(f"{snapshot_id}:{service}:{kind}:{path}".encode())
+        source_url = None
+        if service_url:
+            source_url = (
+                service_url + "#:~:text=BDD%20scenarios"
+                if kind == "scenario"
+                else service_url + quote(path.split("#", 1)[0].removeprefix("sources/"), safe="/")
+            )
         source = Source(
             id="s-" + identity,
             service=service,
@@ -179,12 +188,7 @@ def documents_from_bundle(
             commit_sha=metadata["commitSha"],
             bundle_sha256=bundle_sha,
             title=title,
-            url=(
-                f"{base_url.rstrip('/')}/livedoc/{version}/{service}/"
-                + quote(path.split("#", 1)[0].removeprefix("sources/"), safe="/")
-                if base_url
-                else None
-            ),
+            url=source_url,
         )
         payload["provenance"] = {
             "repository": metadata.get("repository"),
@@ -378,6 +382,11 @@ def documents_from_bundle(
             raw_content = (
                 raw_operation.get("requestBody", {}).get("content", {}).get(media_type, {})
             )
+            responsibility = (
+                operation.get("summary") or operation.get("description") or operation_id
+            )
+            responsibility = " ".join(responsibility.split())
+            actions = operation_actions(method, operation_id, responsibility)
             payload = {
                 "rawRequestSchema": raw_content.get("schema", {}),
                 "sourceOperation": raw_operation,
@@ -385,6 +394,7 @@ def documents_from_bundle(
                 "method": method.upper(),
                 "path": path,
                 "operationId": operation_id,
+                "responsibility": responsibility,
                 "openapiVersion": spec["openapi"],
                 "mediaType": media_type,
                 "requestSchema": definition.get("schema", {}),
@@ -399,6 +409,7 @@ def documents_from_bundle(
                 + path.replace("~", "~0").replace("/", "~1")
                 + f"/{method}",
                 f"{method.upper()} {path}\n{operation_id}\n"
+                f"Responsibility: {responsibility}\nAction keywords: {', '.join(actions)}\n"
                 + json.dumps(operation, ensure_ascii=False),
                 payload,
                 operation_id=operation_id,

@@ -16,6 +16,8 @@ Azure Storage backend, or delete source archives/old index scopes.
    Otherwise require all refresh credentials before downloading or indexing anything.
 4. Ingest every selected archive with existing identity/checksum/inventory validation.
    Missing Users or other archives block the complete candidate; services are not omitted.
+   Use `knowledge/faq-en.json` to associate English questions with verified OpenAPI,
+   validation and BDD sources. Search indexes the questions under those source identities.
 5. Require all 25 reviewed Products cases in local/evidence mode. A changed Products
    publication needs a reviewed suite/pin update; automation cannot silently approve it.
 6. Plan and enforce input/vector budgets, then complete indexing. A valid existing
@@ -24,6 +26,8 @@ Azure Storage backend, or delete source archives/old index scopes.
 7. Require the 25 cases against real hybrid retrieval in evidence mode using a query
    key, followed by the combined Products case (`products-01`) in model mode. Its
    requested JSON example must be available and schema-checked.
+   Record the retrieval ranks for `evaluation/faq-en.json` in `faq-evaluation.json`.
+   These paraphrases are used only during evaluation. Misses are reported for review.
 8. Verify reports agree on the corpus, published manifests, profile, configuration and
    case identities. Build one image, compare its baked corpus bytes with the verified
    input, check health/auth and a sourced answer, then scan it with Trivy.
