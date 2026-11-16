@@ -82,15 +82,15 @@ class EvidencePlanner:
         sections = []
         requested = intent(question)
         contract = select_contract(question, documents) if requested.contract else None
+        flows = [
+            d for d in documents if d.kind == "flow" and d.title.casefold() in question.casefold()
+        ]
         if requested.validation:
-            for doc in select_policies(question, documents, contract):
+            for doc in select_policies(question, documents, contract, flows):
                 if section := _validation_section(doc):
                     sections.append(section)
         if contract is not None:
             sections.append(_contract_section(contract))
-        flows = [
-            d for d in documents if d.kind == "flow" and d.title.casefold() in question.casefold()
-        ]
         for doc in flows:
             sections.append(
                 PlanSection(
