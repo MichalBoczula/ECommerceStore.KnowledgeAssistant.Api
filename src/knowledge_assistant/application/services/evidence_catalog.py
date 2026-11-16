@@ -182,11 +182,18 @@ def documented_example(payload: dict) -> bool:
     return bool(payload.get("hasDocumentedExample", payload.get("exampleRequest") is not None))
 
 
-def select_policies(question: str, documents: list[Document], contract: Document | None):
+def select_policies(
+    question: str, documents: list[Document], contract: Document | None, flows: list[Document]
+) -> list[Document]:
     policies = [d for d in documents if d.kind == "validation" and policy_rules(d)]
     named = [d for d in policies if d.title.casefold() in question.casefold()]
     if named:
         return named
+    if flows:
+        operations = {
+            operation_id for flow in flows for operation_id in flow.payload.get("operationIds", [])
+        }
+        return [d for d in policies if operations.intersection(d.payload.get("operationIds", []))]
     if contract:
         linked = [d for d in policies if contract.operation_id in d.payload.get("operationIds", [])]
         if linked:

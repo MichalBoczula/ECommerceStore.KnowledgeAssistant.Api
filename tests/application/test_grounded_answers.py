@@ -91,6 +91,34 @@ def test_referenced_policy_is_documentation_not_proof_that_every_rule_ran(demo):
     assert any("do not prove" in note for note in result.limitations)
 
 
+@pytest.mark.parametrize("has_linked_policy", [True, False])
+def test_named_command_uses_only_its_linked_validation_evidence(demo, has_linked_policy):
+    docs = copy.deepcopy(demo.corpus.documents)
+    flow = next(d for d in docs if d.kind == "flow")
+    flow.title = "CreateMobilePhoneCommand"
+    flow.content = "Run the phone policy. No hardware or money rules are added by this flow."
+    flow.payload["operationIds"] = ["createMobilePhone"]
+    create_policy = next(d for d in docs if d.kind == "validation")
+    create_policy.title = "MobilePhonesValidationPolicy"
+    create_policy.payload.update(policyRole="referenced", operationIds=["createMobilePhone"])
+    filter_policy = create_policy.model_copy(deep=True)
+    filter_policy.id = filter_policy.source.id = "filter-policy"
+    filter_policy.title = "MobilePhoneFilterValidationPolicy"
+    filter_policy.payload["operationIds"] = ["filterMobilePhones"]
+    docs.insert(0, filter_policy)
+    expected_sources = {flow.source.id}
+    if has_linked_policy:
+        expected_sources.add(create_policy.source.id)
+    else:
+        docs.remove(create_policy)
+
+    question = "What does CreateMobilePhoneCommand say about hardware and money rules?"
+    result = answer(docs, EvidencePlanner().plan(question, docs), question=question, is_demo=False)
+
+    assert {source.id for source in result.sources} == expected_sources
+    assert result.status == ("answered" if has_linked_policy else "partial")
+
+
 @pytest.mark.parametrize("missing", ["validation", "api_contract"])
 def test_missing_requested_part_keeps_supported_sections(demo, missing):
     docs, _ = prepared(demo)
