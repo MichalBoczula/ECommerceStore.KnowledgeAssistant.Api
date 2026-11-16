@@ -5,6 +5,7 @@ import pytest
 
 from knowledge_assistant.cli import main
 from knowledge_assistant.infrastructure.ingestion.livedocs import digest
+from knowledge_assistant.infrastructure.retrieval.azure_indexer import IndexingFailure
 from knowledge_assistant.infrastructure.retrieval.indexing_io import verified_corpus
 
 
@@ -74,7 +75,10 @@ def test_unreviewed_or_changed_corpus_cannot_be_indexed(tmp_path, demo, change):
         verified_corpus(path, report)
 
 
-def test_failed_indexing_keeps_last_report_and_closes_clients(tmp_path, demo, cloud, monkeypatch):
+@pytest.mark.parametrize("kind", [ValueError, IndexingFailure])
+def test_failed_indexing_keeps_last_report_and_closes_clients(
+    tmp_path, demo, cloud, monkeypatch, capsys, kind
+):
     path, ingestion_report, _ = inputs(tmp_path, demo)
     output = tmp_path / "index-report.json"
     output.write_text("last-successful-report")
@@ -85,7 +89,7 @@ def test_failed_indexing_keeps_last_report_and_closes_clients(tmp_path, demo, cl
             pass
 
         def upload(self, plan, cache):
-            raise ValueError("Index upload was incomplete")
+            raise kind("Index upload was incomplete")
 
         def close(self):
             closed.append(True)
@@ -110,6 +114,7 @@ def test_failed_indexing_keeps_last_report_and_closes_clients(tmp_path, demo, cl
         main()
     assert failure.value.code == 1
     assert output.read_text() == "last-successful-report" and closed == [True]
+    assert "Index upload was incomplete" in capsys.readouterr().err
 
 
 def test_indexing_demo_data_requires_an_explicit_opt_in(tmp_path, demo):

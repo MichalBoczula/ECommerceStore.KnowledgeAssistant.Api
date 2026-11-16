@@ -122,6 +122,12 @@ query embeddings, and the core model case makes another query embedding/chat req
 existing provider SDK retry behavior can add attempts. Indexing records measured
 embedding usage; chat cost/usage monitoring belongs to public-demo readiness.
 
+If an upload fails, the workflow log names the provider, phase, HTTP status when
+available, and the chunks acknowledged in that run. Search write failures also
+report service storage usage and quota when available. Compare those values with
+the Search service's **Overview → Usage** before deciding which retained scope to
+keep.
+
 ### First refresh of the DOCS/01 snapshot
 
 Select the published LiveDocs commit `ce5a8a496a674e58240a498485290c964c051cb9`

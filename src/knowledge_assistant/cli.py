@@ -14,7 +14,7 @@ from .infrastructure.ingestion.faq import FaqCatalog, attach_faq
 from .infrastructure.ingestion.json_source import read
 from .infrastructure.ingestion.livedocs import ingest_manifest
 from .infrastructure.ingestion.publication import publish_import
-from .infrastructure.retrieval.azure_indexer import AzureIndexer
+from .infrastructure.retrieval.azure_indexer import AzureIndexer, IndexingFailure
 from .infrastructure.retrieval.index_plan import plan_index
 from .infrastructure.retrieval.indexing_io import verified_corpus, write_report
 
@@ -207,7 +207,7 @@ def main() -> None:
     except (ValueError, OSError, AzureError, OpenAIError) as error:
         message = (
             str(error)
-            if type(error) is ValueError
+            if type(error) in (ValueError, IndexingFailure)
             else (
                 "Check corpus/report integrity, Azure configuration, "
                 "permissions and provider availability."

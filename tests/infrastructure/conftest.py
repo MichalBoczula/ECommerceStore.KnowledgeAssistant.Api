@@ -68,6 +68,9 @@ class IndexFake:
     def get_index_statistics(self, name):
         return {"storage_size": 100, "vector_index_size": 0}
 
+    def get_service_statistics(self):
+        return {"counters": {"storage_size": {"usage": 100, "quota": 52428800}}}
+
     def close(self):
         pass
 

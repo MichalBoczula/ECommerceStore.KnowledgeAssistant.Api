@@ -1,7 +1,11 @@
-import pytest
-from azure.core.exceptions import AzureError
+from types import SimpleNamespace
 
-from knowledge_assistant.infrastructure.retrieval.azure_indexer import AzureIndexer
+import httpx
+import pytest
+from azure.core.exceptions import AzureError, HttpResponseError
+from openai import APIStatusError
+
+from knowledge_assistant.infrastructure.retrieval.azure_indexer import AzureIndexer, IndexingFailure
 from knowledge_assistant.infrastructure.retrieval.index_plan import (
     INPUT_BYTES,
     MANIFEST_KIND,
@@ -63,6 +67,77 @@ def test_failed_batch_never_publishes_a_completion_marker(demo, cloud, tmp_path)
         indexer(cloud).upload(plan, tmp_path)
     assert cloud.embeddings.requests == 2
     assert manifest_key(plan.corpus_sha, plan.profile) not in cloud.search.rows
+
+
+@pytest.mark.parametrize("partial_response", [True, False])
+def test_search_upload_failure_identifies_http_status_and_storage(
+    demo, cloud, tmp_path, partial_response
+):
+    plan = plan_index(demo.corpus, cloud.settings)
+
+    def fail(documents):
+        if partial_response:
+            return [
+                SimpleNamespace(
+                    key=row["id"], succeeded=False, status_code=429, error_message="private detail"
+                )
+                for row in documents
+            ]
+        error = HttpResponseError("private detail")
+        error.status_code = 429
+        raise error
+
+    cloud.search.upload_documents = fail
+    cloud.index.get_service_statistics = lambda: {
+        "counters": {"storage_size": {"usage": 51429191, "quota": 52428800}}
+    }
+    with pytest.raises(IndexingFailure) as failure:
+        indexer(cloud).upload(plan, tmp_path)
+    text = str(failure.value)
+    assert "Azure AI Search" in text and "uploading chunks" in text
+    assert "0 of " in text and "HTTP 429" in text
+    assert "51,429,191 of 52,428,800 bytes" in text
+    assert "private detail" not in text
+    assert manifest_key(plan.corpus_sha, plan.profile) not in cloud.search.rows
+
+
+def test_embedding_throttling_is_attributed_to_openai_without_search_stats(demo, cloud, tmp_path):
+    plan = plan_index(demo.corpus, cloud.settings)
+
+    def fail(_):
+        request = httpx.Request("POST", "https://private-resource.invalid/embeddings")
+        raise APIStatusError(
+            "private provider detail", response=httpx.Response(429, request=request), body=None
+        )
+
+    def unexpected():
+        pytest.fail("An embedding failure does not need Search storage statistics")
+
+    cloud.embeddings.embed = fail
+    cloud.index.get_service_statistics = unexpected
+    with pytest.raises(IndexingFailure) as failure:
+        indexer(cloud).upload(plan, tmp_path)
+    text = str(failure.value)
+    assert "Azure OpenAI" in text and "HTTP 429" in text
+    assert "private" not in text and cloud.search.uploads == []
+
+
+def test_unavailable_storage_statistics_preserve_the_original_upload_status(demo, cloud, tmp_path):
+    def upload_failed(documents):
+        error = HttpResponseError("private upload detail")
+        error.status_code = 503
+        raise error
+
+    def stats_failed():
+        raise AzureError("private stats detail")
+
+    cloud.search.upload_documents = upload_failed
+    cloud.index.get_service_statistics = stats_failed
+    with pytest.raises(IndexingFailure) as failure:
+        indexer(cloud).upload(plan_index(demo.corpus, cloud.settings), tmp_path)
+    assert "HTTP 503" in str(failure.value)
+    assert "storage statistics unavailable" in str(failure.value)
+    assert "private" not in str(failure.value)
 
 
 def test_unqueryable_upload_is_not_published(demo, cloud, tmp_path, monkeypatch):
