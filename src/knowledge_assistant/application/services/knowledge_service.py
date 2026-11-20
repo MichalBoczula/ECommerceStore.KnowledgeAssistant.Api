@@ -5,6 +5,7 @@ from ..contracts import Answer, Catalog, Query, Snapshot
 from ..errors import ResourceNotFoundError, SnapshotNotActiveError
 from ..planning import AnswerPlan
 from ..ports import AnswerPlanner, KnowledgeRetriever
+from .allure_examples import add_allure_examples
 from .answer_assembler import assemble
 from .evidence_catalog import requests_endpoint_matrix
 from .evidence_planner import plan_api_lookup
@@ -50,6 +51,7 @@ class KnowledgeService:
         ):
             raise EvidenceVerificationError("Evidence escaped the requested scope")
         answer_mode = self.planner.mode
+        lookup = plan_api_lookup(body.question, documents, limit)
         if not documents:
             plan = AnswerPlan(
                 status="not_found",
@@ -58,11 +60,12 @@ class KnowledgeService:
                     "No supporting evidence was found in the selected service and snapshot."
                 ],
             )
-        elif lookup := plan_api_lookup(body.question, documents, limit):
+        elif lookup:
             plan = lookup
             answer_mode = "evidence"
         else:
             plan = self.planner.plan(body.question, documents)
+        plan = add_allure_examples(body, documents, plan, operation_lookup=lookup is not None)
         return assemble(
             body, documents, plan, answer_mode, self.retriever.mode, self.corpus.is_demo
         )

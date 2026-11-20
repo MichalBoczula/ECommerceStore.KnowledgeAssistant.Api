@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from knowledge_assistant.application.contracts import Query
 from knowledge_assistant.application.planning import AnswerPlan, PlanSection
 from knowledge_assistant.application.services.answer_assembler import assemble
-from knowledge_assistant.application.services.evidence_catalog import policy_rules
+from knowledge_assistant.application.services.evidence_catalog import lookup_contracts, policy_rules
 from knowledge_assistant.application.services.evidence_planner import EvidencePlanner
 from knowledge_assistant.application.services.request_examples import validate_example
 from knowledge_assistant.domain.errors import EvidenceVerificationError
@@ -275,6 +275,17 @@ def test_ambiguous_contract_is_not_chosen_by_retrieval_order(demo):
     result = answer(docs, EvidencePlanner().plan(QUESTION, docs))
     assert result.status == "partial"
     assert not any(s.type == "api_contract" for s in result.sections)
+
+
+def test_create_customer_lookup_prefers_the_customer_collection(demo):
+    template = next(doc for doc in demo.corpus.documents if doc.kind == "api_contract")
+    customer = template.model_copy(deep=True, update={"operation_id": "CreateCustomer"})
+    customer.payload.update(path="/customers", responsibility="Create a customer profile")
+    company = template.model_copy(deep=True, update={"operation_id": "AddCompany"})
+    company.payload.update(
+        path="/customers/{customerId}/companies", responsibility="Add a company to a customer"
+    )
+    assert lookup_contracts("How do I create a customer?", [company, customer]) == [customer]
 
 
 def test_read_contract_without_request_body_does_not_require_an_example(demo):

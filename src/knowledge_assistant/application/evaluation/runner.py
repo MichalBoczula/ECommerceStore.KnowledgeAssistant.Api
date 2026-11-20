@@ -50,6 +50,31 @@ class RecordedRetriever:
         return found
 
 
+def _cited_allure_cases(answer: Answer, by_source: dict[str, Document], corpus: Corpus) -> set[str]:
+    scenarios = {doc.id: doc for doc in corpus.documents if doc.kind == "scenario"}
+    cases = set()
+    for section in answer.sections:
+        if section.type != "scenario" or section.execution_status != "passed":
+            continue
+        for source_id in section.source_ids:
+            execution = by_source.get(source_id)
+            if (
+                execution is None
+                or execution.kind != "execution"
+                or execution.title != section.title
+                or execution.payload.get("status") != "passed"
+                or not (execution.source.url or "").endswith(
+                    f"/livedoc/{corpus.version}/{answer.service}/allure/#behaviors"
+                )
+            ):
+                continue
+            cases.update(execution.payload.get("scenarioIds", []))
+            for scenario_id in execution.payload.get("scenarioDocumentIds", []):
+                if scenario := scenarios.get(scenario_id):
+                    cases.update(scenario.payload.get("scenarioIds", []))
+    return cases
+
+
 def checks_for(case: EvaluationCase, answer: Answer, documents: list[Document], corpus: Corpus):
     expected = case.expect
     by_source = {d.source.id: d for d in documents}
@@ -119,6 +144,10 @@ def checks_for(case: EvaluationCase, answer: Answer, documents: list[Document], 
         "original_contracts": True,
         "examples": True,
     }
+    if expected.allure_case_ids:
+        checks["allure_cases"] = set(expected.allure_case_ids) <= _cited_allure_cases(
+            answer, by_source, corpus
+        )
     for contract in contracts:
         originals = [
             by_source[i]

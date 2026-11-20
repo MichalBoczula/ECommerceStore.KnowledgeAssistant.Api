@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "id": "allure-pinned-v1",
+  "description": "A contract lookup and a business FAQ for each published service with the expected observed Allure cases.",
+  "isDemo": false,
+  "sourcePins": [
+    {
+      "service": "invoices",
+      "commitSha": "41f5f0b9976ecfd87916de3a568515da94de7c12",
+      "bundleSha256": "5aff95dae445964842f23797c104b1ae1e1ea936d30194ed44e835d3c6ac187d"
+    },
+    {
+      "service": "payments",
+      "commitSha": "4b8e375dbc5a0092b2ec88c0fd8a51ee59fdcee8",
+      "bundleSha256": "bf55c835beb7caa70db6d2d734fcac931b0ebdddaf90788cc26ee4ce1a95f969"
+    },
+    {
+      "service": "products",
+      "commitSha": "71f8a59f1d2cee84a90247de305901c6cb5dc7a6",
+      "bundleSha256": "3778159f7c3579610bfb0fd76c0068dbe11e7e7e547c0c2a7fe251ab3d548c53"
+    },
+    {
+      "service": "users",
+      "commitSha": "a654c3feb41dbb87bf1274743749007761cdf9dc",
+      "bundleSha256": "197edf5fd6b803dcd88ee2a68c5260d00d41a856672b8744404f69617c331160"
+    }
+  ],
+  "cases": [
+    {
+      "id": "products-operation",
+      "question": "How do I create a mobile phone?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered",
+          "partial"
+        ],
+        "sectionTypes": [
+          "api_contract",
+          "scenario"
+        ],
+        "contracts": [
+          {
+            "operationId": "CreateMobilePhone",
+            "method": "POST",
+            "path": "/mobile-phones"
+          }
+        ],
+        "allureCaseIds": [
+          "REF07_CreateMobilePhone_01"
+        ]
+      }
+    },
+    {
+      "id": "products-faq",
+      "question": "Can a phone name or brand be blank?",
+      "service": "products",
+      "expect": {
+        "statuses": [
+          "answered",
+          "partial"
+        ],
+        "sectionTypes": [
+          "scenario"
+        ],
+        "allureCaseIds": [
+          "REF07_Create_NameBlank",
+          "REF07_Create_BrandBlank"
+        ]
+      }
+    },
+    {
+      "id": "users-operation",
+      "question": "How do I create a customer?",
+      "service": "users",
+      "expect": {
+        "statuses": [
+          "answered",
+          "partial"
+        ],
+        "sectionTypes": [
+          "api_contract",
+          "scenario"
+        ],
+        "contracts": [
+          {
+            "operationId": "CreateCustomer",
+            "method": "POST",
+            "path": "/customers"
+          }
+        ],
+        "allureCaseIds": [
+          "REF07_CreateCustomer_04"
+        ]
+      }
+    },
+    {
+      "id": "users-faq",
+      "question": "How does Users respond when the same product is favorited twice?",
+      "service": "users",
+      "expect": {
+        "statuses": [
+          "answered",
+          "partial"
+        ],
+        "sectionTypes": [
+          "scenario"
+        ],
+        "allureCaseIds": [
+          "REF07_AddProductToFavorites_04"
+        ]
+      }
+    },
+    {
+      "id": "invoices-operation",
+      "question": "POST /invoices/{clientId}/{orderId}",
+      "service": "invoices",
+      "expect": {
+        "statuses": [
+          "answered",
+          "partial"
+        ],
+        "sectionTypes": [
+          "api_contract",
+          "scenario"
+        ],
+        "contracts": [
+          {
+            "operationId": "CreateInvoiceForOrder",
+            "method": "POST",
+            "path": "/invoices/{clientId}/{orderId}"
+          }
+        ],
+        "allureCaseIds": [
+          "INV01_CreateInvoiceForOrder_04"
+        ]
+      }
+    },
+    {
+      "id": "invoices-faq",
+      "question": "Can I create an invoice before the order is paid?",
+      "service": "invoices",
+      "expect": {
+        "statuses": [
+          "answered",
+          "partial"
+        ],
+        "sectionTypes": [
+          "scenario"
+        ],
+        "allureCaseIds": [
+          "INV01_CreateInvoiceForOrder_06"
+        ]
+      }
+    },
+    {
+      "id": "payments-operation",
+      "question": "POST /payments/{order_id}/checkout",
+      "service": "payments",
+      "expect": {
+        "statuses": [
+          "answered",
+          "partial"
+        ],
+        "sectionTypes": [
+          "api_contract",
+          "scenario"
+        ],
+        "contracts": [
+          {
+            "operationId": "createOrderCheckout",
+            "method": "POST",
+            "path": "/payments/{order_id}/checkout"
+          }
+        ],
+        "allureCaseIds": [
+          "PAY21-01"
+        ]
+      }
+    },
+    {
+      "id": "payments-faq",
+      "question": "How does Payments respond to a missing or invalid Stripe signature?",
+      "service": "payments",
+      "expect": {
+        "statuses": [
+          "answered",
+          "partial"
+        ],
+        "sectionTypes": [
+          "scenario"
+        ],
+        "allureCaseIds": [
+          "PAY22-03",
+          "PAY22-04"
+        ]
+      }
+    }
+  ]
+}

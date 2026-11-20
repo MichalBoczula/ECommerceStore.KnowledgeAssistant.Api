@@ -2,7 +2,7 @@
 
 from collections import Counter
 
-from knowledge_assistant.domain.faq import faq_aliases
+from knowledge_assistant.domain.faq import faq_aliases, faq_allure_examples
 from knowledge_assistant.domain.models import Corpus, Document
 
 
@@ -30,6 +30,9 @@ def bundle_report(metadata: dict, reference: dict, documents: list[Document]) ->
         ),
         "compiledScenarios": len(scenarios),
         "executionResults": len(executions),
+        "executionsWithBehaviorsUrl": sum(
+            (d.source.url or "").endswith("/allure/#behaviors") for d in executions
+        ),
         "executionStatuses": dict(sorted(Counter(d.payload["status"] for d in executions).items())),
         "scenariosWithExecution": sum(
             bool(d.payload.get("executionDocumentIds")) for d in scenarios
@@ -54,6 +57,25 @@ def ingestion_report(
 ) -> dict:
     if len({d.id for d in corpus.documents}) != len(corpus.documents):
         raise ValueError("Ingestion produced duplicate document identities")
+    by_id = {d.id: d for d in corpus.documents}
+    allure = []
+    for document in corpus.documents:
+        for faq_id, examples in faq_allure_examples(document).items():
+            question = faq_aliases(document)[faq_id]
+            for example in examples:
+                execution = by_id.get(example["executionDocumentId"])
+                allure.append(
+                    {
+                        "faqId": faq_id,
+                        "question": question,
+                        "service": document.source.service,
+                        "scenarioId": example["scenarioId"],
+                        "coverage": example["coverage"],
+                        "testScenario": execution.title if execution else None,
+                        "url": execution.source.url if execution else None,
+                        "executionStatus": execution.payload["status"] if execution else None,
+                    }
+                )
     return {
         "schemaVersion": 1,
         "snapshotId": corpus.snapshot_id,
@@ -66,6 +88,7 @@ def ingestion_report(
         "documents": len(corpus.documents),
         "documentsByKind": dict(sorted(Counter(d.kind for d in corpus.documents).items())),
         "faqAliases": sum(len(faq_aliases(doc)) for doc in corpus.documents),
+        "faqAllureExamples": sorted(allure, key=lambda row: (row["faqId"], row["scenarioId"])),
         "services": bundles,
         "warnings": sum(len(b["warnings"]) for b in bundles),
         "note": (

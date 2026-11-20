@@ -18,14 +18,19 @@ Azure Storage backend, or delete source archives/old index scopes.
    Missing Users or other archives block the complete candidate; services are not omitted.
    Use `knowledge/faq-en.json` to associate English questions with verified OpenAPI,
    validation and BDD sources. Search indexes the questions under those source identities.
+   The same catalog maps FAQs to stable Allure scenario IDs. Ingestion resolves the
+   IDs against the selected bundle and records the observed test name, status and
+   Behaviors URL in `faqAllureExamples` in the ingestion report.
 5. Require all 25 reviewed Products cases in local/evidence mode. A changed Products
    publication needs a reviewed suite/pin update; automation cannot silently approve it.
+   Require the contract and Allure checks in `evaluation/allure-v1.json` for Products,
+   Users, Orders/Invoices and Payments before spending embedding quota.
 6. Plan and enforce input/vector budgets, then complete indexing. A valid existing
    completion marker plus visible chunk count avoids repeating corpus embedding calls,
    even with an empty local embedding cache. Corrupt markers fail instead of authorizing reuse.
-7. Require the 25 cases against real hybrid retrieval in evidence mode using a query
-   key, followed by the combined Products case (`products-01`) in model mode. Its
-   requested JSON example must be available and schema-checked.
+7. Require the 25 Products cases and the four-service Allure suite against real
+   hybrid retrieval in evidence mode using a query key. Then run the combined
+   Products case (`products-01`) in model mode and verify its JSON request example.
    Record the retrieval ranks for `evaluation/faq-en.json` in `faq-evaluation.json`.
    These paraphrases are used only during evaluation. Misses are reported for review.
 8. Verify reports agree on the corpus, published manifests, profile, configuration and

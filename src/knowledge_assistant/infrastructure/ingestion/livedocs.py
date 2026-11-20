@@ -162,6 +162,7 @@ def documents_from_bundle(
     execution_ids: set[str] = set()
     service = metadata["project"]
     service_url = f"{base_url.rstrip('/')}/livedoc/{version}/{service}/" if base_url else ""
+    allure_url = service_url + "allure/#behaviors" if service_url else None
 
     def add(
         kind: str,
@@ -175,11 +176,14 @@ def documents_from_bundle(
         identity = digest(f"{snapshot_id}:{service}:{kind}:{path}".encode())
         source_url = None
         if service_url:
-            source_url = (
-                service_url + "#:~:text=BDD%20scenarios"
-                if kind == "scenario"
-                else service_url + quote(path.split("#", 1)[0].removeprefix("sources/"), safe="/")
-            )
+            if kind == "execution":
+                source_url = allure_url
+            elif kind == "scenario":
+                source_url = service_url + "#:~:text=BDD%20scenarios"
+            else:
+                source_url = service_url + quote(
+                    path.split("#", 1)[0].removeprefix("sources/"), safe="/"
+                )
         source = Source(
             id="s-" + identity,
             service=service,
@@ -452,6 +456,9 @@ def documents_from_bundle(
                     {"value": registry},
                 )
     relate(documents)
+    for document in documents:
+        if document.kind == "scenario" and document.payload.get("executionDocumentIds"):
+            document.source.url = allure_url
     return documents
 
 

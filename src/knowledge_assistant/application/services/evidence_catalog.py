@@ -104,6 +104,15 @@ def _action_contracts(question: str, candidates: list[Document]) -> list[Documen
             terms <= _resource_terms(tokens(f"{path} {doc.operation_id or ''} {responsibility}"))
         ):
             matches.append(doc)
+    if len(matches) > 1 and verb in {"add", "create", "post", "register"}:
+        exact_collection = [
+            doc
+            for doc in matches
+            if "{" not in doc.payload["path"]
+            and _resource_terms(tokens(doc.payload["path"])) == terms
+        ]
+        if exact_collection:
+            matches = exact_collection
     return sorted(matches, key=_route_order)
 
 
