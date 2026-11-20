@@ -2,7 +2,12 @@
 
 from knowledge_assistant.application.contracts import Query
 from knowledge_assistant.application.services.evidence_catalog import intent, lookup_contracts
-from knowledge_assistant.domain.faq import faq_aliases, question_key
+from knowledge_assistant.domain.faq import (
+    exact_faq_examples,
+    faq_aliases,
+    operation_example,
+    question_key,
+)
 from knowledge_assistant.domain.models import Corpus, Document
 
 
@@ -21,9 +26,15 @@ def expand_context(
         if any(question_key(alias) == question for alias in faq_aliases(doc).values())
     ]
     contracts = lookup_contracts(query.question, scoped)
+    validation_requested = intent(query.question).validation
+    references = [example for doc in matched_faq for example in exact_faq_examples(doc, question)]
+    if not references and len(contracts) == 1 and not validation_requested:
+        references = operation_example(contracts[0])
+    example_ids = {reference["executionDocumentId"] for reference in references}
+    examples = [doc for doc in scoped if doc.id in example_ids and doc.kind == "execution"]
     if contracts:
-        if not intent(query.question).validation:
-            return contracts[:limit]
+        if not validation_requested:
+            return list({d.id: d for d in [*contracts, *matched_faq, *examples]}.values())[:limit]
         operations = {doc.operation_id for doc in contracts if doc.operation_id}
         policies = [
             doc
@@ -36,7 +47,9 @@ def expand_context(
             for doc in scoped
             if doc.kind == "operation_links" and doc.operation_id in operations
         ]
-        return [*contracts, *policies, *links][:limit]
+        return list(
+            {d.id: d for d in [*contracts, *policies, *matched_faq, *examples, *links]}.values()
+        )[:limit]
     if not hits and not matched_faq:
         return []
     seeds = list({doc.id: doc for doc in [*matched_faq, *hits]}.values())[: max(1, limit // 2)]
@@ -65,7 +78,7 @@ def expand_context(
     }
     candidates.sort(key=lambda d: (priority[d.kind], d.id))
     result, seen = [], set()
-    for doc in [*seeds, *candidates, *hits]:
+    for doc in [*matched_faq, *examples, *seeds, *candidates, *hits]:
         if doc.id not in seen:
             seen.add(doc.id)
             result.append(doc)

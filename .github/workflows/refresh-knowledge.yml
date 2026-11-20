@@ -117,6 +117,12 @@ jobs:
           uv run knowledge evaluate --suite evaluation/products-v1.json \
             --corpus artifacts/active-corpus.json --ingestion-report artifacts/refresh/ingestion-report.json \
             --report artifacts/refresh/local-evaluation.json
+      - name: Verify Allure business examples for every service before indexing
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          uv run knowledge evaluate --suite evaluation/allure-v1.json \
+            --corpus artifacts/active-corpus.json --ingestion-report artifacts/refresh/ingestion-report.json \
+            --report artifacts/refresh/allure-local-evaluation.json
       - name: Plan and bound embedding work
         if: steps.cache.outputs.cache-hit != 'true'
         env:
@@ -146,6 +152,9 @@ jobs:
           uv run knowledge evaluate --suite evaluation/products-v1.json \
             --corpus artifacts/active-corpus.json --ingestion-report artifacts/refresh/ingestion-report.json \
             --retrieval-mode azure --generation-mode evidence --report artifacts/refresh/retrieval-evaluation.json
+          uv run knowledge evaluate --suite evaluation/allure-v1.json \
+            --corpus artifacts/active-corpus.json --ingestion-report artifacts/refresh/ingestion-report.json \
+            --retrieval-mode azure --generation-mode evidence --report artifacts/refresh/allure-retrieval-evaluation.json
       - name: Verify the first useful model answer and JSON example
         if: steps.cache.outputs.cache-hit != 'true'
         env:

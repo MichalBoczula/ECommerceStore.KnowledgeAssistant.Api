@@ -9,7 +9,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateMobilePhone"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_CreateMobilePhone_01"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-02",
@@ -18,7 +23,15 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateMobilePhone"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_CreateMobilePhone_missing"
+        },
+        {
+          "scenarioId": "REF07_CreateMobilePhone_01"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-03",
@@ -27,7 +40,15 @@
       "target": {
         "kind": "validation",
         "reference": "MobilePhonesValidationPolicy"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_Create_NameBlank"
+        },
+        {
+          "scenarioId": "REF07_Create_BrandBlank"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-04",
@@ -36,7 +57,13 @@
       "target": {
         "kind": "validation",
         "reference": "ElectronicDetailsValidationPolicy"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_CreateMobilePhone_01",
+          "coverage": "related"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-05",
@@ -45,7 +72,13 @@
       "target": {
         "kind": "validation",
         "reference": "AmountValidationPolicy"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_CreateMobilePhone_01",
+          "coverage": "related"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-06",
@@ -54,7 +87,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetMobilePhones"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetMobilePhones_01"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-07",
@@ -63,7 +101,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetMobilePhones"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetMobilePhones_01"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-08",
@@ -72,7 +115,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetMobilePhoneById"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetMobilePhoneById_01"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-09",
@@ -81,7 +129,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetMobilePhoneById"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF08_GetTopMobilePhones_200_Inactive"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-10",
@@ -90,7 +143,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetMobilePhonesByIds"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetMobilePhonesByIds_02"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-11",
@@ -99,7 +157,13 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetMobilePhonesByIds"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetMobilePhonesByIds_02",
+          "coverage": "related"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-12",
@@ -108,7 +172,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetFiltered MobilePhones"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetFiltered_MobilePhones_01"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-13",
@@ -117,7 +186,15 @@
       "target": {
         "kind": "validation",
         "reference": "MobilePhoneFilterValidationPolicy"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_Filter_ReversedBounds"
+        },
+        {
+          "scenarioId": "REF07_Filter_EqualBounds"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-14",
@@ -126,7 +203,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetMobilePhoneHistory"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetMobilePhoneHistory_01"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-15",
@@ -135,7 +217,13 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetMobilePhoneHistory"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetMobilePhoneHistory_01",
+          "coverage": "related"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-16",
@@ -144,7 +232,15 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetTopMobilePhones"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetTopMobilePhones_01"
+        },
+        {
+          "scenarioId": "REF08_GetTopMobilePhones_200_StableTie"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-17",
@@ -153,7 +249,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "UpdateMobilePhone"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_UpdateMobilePhone_01"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-18",
@@ -162,7 +263,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "UpdateMobilePhone"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF08_UpdateMobilePhone_200_Unchanged"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-19",
@@ -171,7 +277,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "DeleteMobilePhone"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_DeleteMobilePhone_01"
+        }
+      ]
     },
     {
       "id": "PROD-FAQ-20",
@@ -180,7 +291,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "DeleteMobilePhone"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF08_DeleteMobilePhone_200_Repeated"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-01",
@@ -189,7 +305,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateCustomer"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_CreateCustomer_04"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-02",
@@ -198,7 +319,15 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateCustomer"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_Framework_CreateCustomer_missing_members"
+        },
+        {
+          "scenarioId": "REF07_CreateCustomer_04"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-03",
@@ -207,7 +336,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateCustomer"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF10_Serializer_Companies_Omitted"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-04",
@@ -216,7 +350,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateCustomer"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF06_Validation_NullIndividual"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-05",
@@ -225,7 +364,21 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateCustomer"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_CreateCustomer_04",
+          "coverage": "related"
+        },
+        {
+          "scenarioId": "REF06_NullObject_CreateCustomer_IndividualBilling",
+          "coverage": "related"
+        },
+        {
+          "scenarioId": "REF06_NullObject_CreateCustomer_IndividualShipping",
+          "coverage": "related"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-06",
@@ -234,7 +387,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetCustomerByExternalId"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetCustomerByExternalId_02"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-07",
@@ -243,7 +401,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateCustomer"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_CreateCustomer_01"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-08",
@@ -252,7 +415,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetCustomerByExternalId"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetCustomerByExternalId_01"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-09",
@@ -261,7 +429,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "UpdateIndividualData"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_UpdateIndividualData_03"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-10",
@@ -270,7 +443,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "AddCompany"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_AddCompany_04"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-11",
@@ -279,7 +457,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "UpdateCompany"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_UpdateCompany_04"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-12",
@@ -288,7 +471,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "AddCompany"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_AddCompany_01"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-13",
@@ -297,7 +485,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "UpdateIndividualData"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF08_CustomerUpdate_409_ConcurrentChange"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-14",
@@ -306,7 +499,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateAdmin"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_CreateAdmin_03"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-15",
@@ -315,7 +513,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetAdminByExternalId"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetAdminByExternalId_02"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-16",
@@ -324,7 +527,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetFavoritesByClientId"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_GetFavoritesByClientId_01"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-17",
@@ -333,7 +541,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "AddProductToFavorites"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_AddProductToFavorites_01"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-18",
@@ -342,7 +555,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "AddProductToFavorites"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_AddProductToFavorites_04"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-19",
@@ -351,7 +569,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "RemoveProductFromFavorites"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_RemoveProductFromFavorites_01"
+        }
+      ]
     },
     {
       "id": "USER-FAQ-20",
@@ -360,7 +583,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "ClearClientFavorites"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "REF07_ClearClientFavorites_01"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-01",
@@ -369,7 +597,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateInvoiceForOrder"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_CreateInvoiceForOrder_04"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-02",
@@ -378,7 +611,12 @@
       "target": {
         "kind": "validation",
         "reference": "InvoiceValidationPolicy"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_CreateInvoiceForOrder_06"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-03",
@@ -387,7 +625,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateInvoiceForOrder"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_CreateInvoiceForOrder_07"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-04",
@@ -396,7 +639,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateInvoiceForOrder"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_CreateInvoiceForOrder_02"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-05",
@@ -405,7 +653,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateInvoiceForOrder"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_CreateInvoiceForOrder_11"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-06",
@@ -414,7 +667,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetInvoiceById"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_GetInvoiceById_03"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-07",
@@ -423,7 +681,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetInvoiceByOrderId"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_GetInvoiceByOrderId_01"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-08",
@@ -432,7 +695,15 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetInvoiceByOrderId"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_GetInvoiceByOrderId_03"
+        },
+        {
+          "scenarioId": "INV01_GetInvoiceByOrderId_04"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-09",
@@ -441,7 +712,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "DownloadInvoicePdf"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV08_DownloadInvoicePdf_BlobSuccess"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-10",
@@ -450,7 +726,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "DownloadInvoicePdf"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV08_DownloadInvoicePdf_BlobMissing"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-11",
@@ -459,7 +740,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetShoppingCartByClientId"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_GetShoppingCartByClientId_03"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-12",
@@ -468,7 +754,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateShoppingCart"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_CreateShoppingCart_02"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-13",
@@ -477,7 +768,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "UpdateShoppingCart"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV03_UpdateShoppingCart_Replace"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-14",
@@ -486,7 +782,15 @@
       "target": {
         "kind": "validation",
         "reference": "ShoppingCartLineValidationPolicy"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV09_Cart_MinimumQuantity"
+        },
+        {
+          "scenarioId": "INV09_Cart_NegativeQuantity"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-15",
@@ -495,7 +799,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateOrder"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_CreateOrder_04"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-16",
@@ -504,7 +813,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateOrder"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_CreateOrder_04"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-17",
@@ -513,7 +827,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetOrdersByClientId"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV05_GetOrdersByClientId_Mixed"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-18",
@@ -522,7 +841,18 @@
       "target": {
         "kind": "validation",
         "reference": "UpdateOrderValidationPolicy"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_UpdateOrderStatus_02"
+        },
+        {
+          "scenarioId": "INV01_UpdateOrderStatus_06"
+        },
+        {
+          "scenarioId": "INV01_UpdateOrderStatus_08"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-19",
@@ -531,7 +861,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "CreateClientDataVersion"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_CreateClientDataVersion_01"
+        }
+      ]
     },
     {
       "id": "INV-FAQ-20",
@@ -540,7 +875,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "GetClientDataVersionByClientId"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "INV01_GetClientDataVersionByClientId_02"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-01",
@@ -549,7 +889,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "createOrderCheckout"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY21-01"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-02",
@@ -558,7 +903,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "createOrderCheckout"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY21-01"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-03",
@@ -567,7 +917,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "createOrderCheckout"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY21-01"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-04",
@@ -576,7 +931,13 @@
       "target": {
         "kind": "api_contract",
         "reference": "createOrderCheckout"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY21-01",
+          "coverage": "related"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-05",
@@ -585,7 +946,15 @@
       "target": {
         "kind": "api_contract",
         "reference": "createOrderCheckout"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY21-01"
+        },
+        {
+          "scenarioId": "PAY21-05"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-06",
@@ -594,7 +963,18 @@
       "target": {
         "kind": "api_contract",
         "reference": "createOrderCheckout"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY10-51"
+        },
+        {
+          "scenarioId": "PAY10-53"
+        },
+        {
+          "scenarioId": "PAY10-56"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-07",
@@ -603,7 +983,12 @@
       "target": {
         "kind": "scenario",
         "reference": "PAY05-04"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY05-04"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-08",
@@ -612,7 +997,15 @@
       "target": {
         "kind": "scenario",
         "reference": "PAY06-02"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY06-02"
+        },
+        {
+          "scenarioId": "PAY21-03"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-09",
@@ -621,7 +1014,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "payOrder"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY11-01"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-10",
@@ -630,7 +1028,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "getPaymentByOrderId"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY11-02"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-11",
@@ -639,7 +1042,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "getPaymentByOrderId"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY11-04"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-12",
@@ -648,7 +1056,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "receiveStripeWebhook"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY22-01"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-13",
@@ -657,7 +1070,15 @@
       "target": {
         "kind": "api_contract",
         "reference": "receiveStripeWebhook"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY22-03"
+        },
+        {
+          "scenarioId": "PAY22-04"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-14",
@@ -666,7 +1087,12 @@
       "target": {
         "kind": "scenario",
         "reference": "PAY22-15"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY22-15"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-15",
@@ -675,7 +1101,12 @@
       "target": {
         "kind": "scenario",
         "reference": "PAY08-01"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY08-01"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-16",
@@ -684,7 +1115,15 @@
       "target": {
         "kind": "scenario",
         "reference": "PAY22-09"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY22-09"
+        },
+        {
+          "scenarioId": "PAY22-02"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-17",
@@ -693,7 +1132,12 @@
       "target": {
         "kind": "scenario",
         "reference": "PAY22-07"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY22-07"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-18",
@@ -702,7 +1146,12 @@
       "target": {
         "kind": "api_contract",
         "reference": "receiveStripeWebhook"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY05-02"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-19",
@@ -711,7 +1160,12 @@
       "target": {
         "kind": "scenario",
         "reference": "PAY09-33"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY09-33"
+        }
+      ]
     },
     {
       "id": "PAY-FAQ-20",
@@ -720,7 +1174,12 @@
       "target": {
         "kind": "scenario",
         "reference": "PAY09-36"
-      }
+      },
+      "allureExamples": [
+        {
+          "scenarioId": "PAY09-36"
+        }
+      ]
     }
   ]
 }

@@ -25,6 +25,7 @@ class Expectations(Model):
     rule_texts: list[str] = []
     rules_exact: bool = False
     contracts: list[ExpectedContract] = []
+    allure_case_ids: list[str] = []
     required_source_paths: list[str] = []
     allowed_source_paths: list[str] = []
     text_fragments: list[str] = []
