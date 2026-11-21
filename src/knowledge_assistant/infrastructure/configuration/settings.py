@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import Literal
 
@@ -10,7 +11,7 @@ class Settings(BaseSettings):
 
     corpus_path: Path = Path("examples/demo-corpus.json")
     retrieval_mode: Literal["local", "azure"] = "local"
-    generation_mode: Literal["evidence", "azure"] = "evidence"
+    generation_mode: Literal["evidence", "azure", "foundry"] = "evidence"
     search_endpoint: str = ""
     search_index: str = "knowledge-v1"
     search_key: SecretStr | None = None
@@ -20,6 +21,9 @@ class Settings(BaseSettings):
     embedding_dimensions: int = Field(default=1536, ge=1, le=4096)
     embedding_revision: str = Field(default="1", min_length=1, max_length=128)
     chat_deployment: str = ""
+    foundry_project_endpoint: str = ""
+    foundry_agent_name: str = ""
+    max_output_tokens: int = Field(default=6000, ge=1)
     api_key: SecretStr | None = None
     cors_origins: list[str] = []
     max_candidates: int = Field(default=12, ge=1, le=50)
@@ -30,3 +34,15 @@ class Settings(BaseSettings):
             raise ValueError("Configure KA_OPENAI_ENDPOINT and KA_EMBEDDING_DEPLOYMENT")
         if chat and not self.chat_deployment:
             raise ValueError("Configure KA_CHAT_DEPLOYMENT")
+
+    def foundry_agent_base_url(self) -> str:
+        project = self.foundry_project_endpoint.rstrip("/")
+        if not re.fullmatch(
+            r"https://[a-z0-9-]+\.services\.ai\.azure\.com/api/projects/[a-zA-Z0-9_-]+",
+            project,
+        ):
+            raise ValueError("Configure KA_FOUNDRY_PROJECT_ENDPOINT with a Foundry project URL")
+        name = self.foundry_agent_name
+        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]*", name):
+            raise ValueError("Configure KA_FOUNDRY_AGENT_NAME with a saved agent name")
+        return f"{project}/agents/{name}/endpoint/protocols/openai/"

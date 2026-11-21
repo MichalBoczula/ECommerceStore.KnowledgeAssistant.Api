@@ -53,7 +53,9 @@ def main() -> None:
     evaluation.add_argument("--summary", type=Path)
     evaluation.add_argument("--case-id", action="append", default=[])
     evaluation.add_argument("--retrieval-mode", choices=["local", "azure"], default="local")
-    evaluation.add_argument("--generation-mode", choices=["evidence", "azure"], default="evidence")
+    evaluation.add_argument(
+        "--generation-mode", choices=["evidence", "azure", "foundry"], default="evidence"
+    )
     evaluation.add_argument("--allow-demo", action="store_true")
     faq_evaluation = commands.add_parser(
         "evaluate-faq", help="Measure retrieval on unseen FAQ wording"

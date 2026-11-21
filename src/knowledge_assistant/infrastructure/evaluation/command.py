@@ -73,7 +73,9 @@ def run_evaluation(args) -> dict:
             else LocalRetriever(corpus)
         )
         resources.append(retriever)
-        planner = ModelPlanner(settings) if args.generation_mode == "azure" else EvidencePlanner()
+        planner = (
+            EvidencePlanner() if settings.generation_mode == "evidence" else ModelPlanner(settings)
+        )
         resources.append(planner)
         report = evaluate_suite(suite, corpus, retriever, planner, settings.max_candidates)
         report.update(
@@ -82,6 +84,8 @@ def run_evaluation(args) -> dict:
             searchIndex=settings.search_index if args.retrieval_mode == "azure" else None,
             chatDeployment=settings.chat_deployment if args.generation_mode == "azure" else None,
         )
+        if settings.generation_mode == "foundry":
+            report["foundryAgentName"] = settings.foundry_agent_name
         write_report(args.report, report)
         if args.summary:
             args.summary.parent.mkdir(parents=True, exist_ok=True)
