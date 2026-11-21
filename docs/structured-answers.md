@@ -106,6 +106,16 @@ Task 3 workflow. A local smoke check can use the synthetic corpus with local ret
 and a configured model; the catalog and answers continue to report `isDemo: true`.
 Do not present that as a live business-documentation answer.
 
+To generate answers with a saved Foundry prompt agent, set `KA_GENERATION_MODE=foundry`,
+`KA_FOUNDRY_PROJECT_ENDPOINT` and `KA_FOUNDRY_AGENT_NAME`. Pin the tested version on the
+agent endpoint in Foundry. The caller needs the `Foundry Agent Consumer` role on that
+agent. In Azure Container Apps, grant it to the API's managed identity. The API sends
+the retrieved evidence and structured response schema to the agent. It verifies the
+returned evidence IDs and renders the citation links from the corpus. Configure
+`KA_MAX_OUTPUT_TOKENS` to cap the response, including reasoning tokens. The default is
+`6000`. To evaluate the saved agent, use `knowledge evaluate --generation-mode foundry`
+with the usual corpus and suite arguments.
+
 ```bash
 uv sync --locked
 uv run pytest -q

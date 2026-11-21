@@ -37,7 +37,7 @@ def create_app(
             else LocalRetriever(loaded)
         )
         generation = planner or (
-            ModelPlanner(settings) if settings.generation_mode == "azure" else EvidencePlanner()
+            EvidencePlanner() if settings.generation_mode == "evidence" else ModelPlanner(settings)
         )
         app.state.knowledge_service = KnowledgeService(
             loaded, retrieval, generation, settings.max_candidates
