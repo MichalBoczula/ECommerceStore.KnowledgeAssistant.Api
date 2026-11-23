@@ -24,6 +24,7 @@ PROVIDER_ERROR_CODES = {
     "ResponsibleAIPolicyViolation",
     "content_filter",
     "invalid_json_schema",
+    "invalid_payload",
     "model_not_found",
     "rate_limit_exceeded",
     "unsupported_parameter",
@@ -116,6 +117,50 @@ class ModelPlanner:
             body=context.body,
             text_format=AnswerPlan,
         )
+        parsed = self._parse_output(result, AnswerPlan)
+        try:
+            plan = context.check(parsed)
+        except EvidenceVerificationError:
+            logger.warning("Model response failed supplied-evidence verification")
+            raise
+        if intent(question).contract and tokens(question) & {"example", "examples", "sample"}:
+            self._complete_request_example(plan, context, documents)
+        return plan
+
+    def _respond(self, *, instructions: str, body: dict, text_format: type[BaseModel]):
+        content = json.dumps(body, ensure_ascii=False, separators=(",", ":"))
+        options = {
+            "max_output_tokens": self.settings.max_output_tokens,
+            "store": False,
+        }
+        if self.settings.generation_mode == "foundry":
+            # The saved agent's endpoint rejects per-request text.format overrides.
+            schema = json.dumps(text_format.model_json_schema(), separators=(",", ":"))
+            return self.client.responses.create(
+                input=[
+                    {
+                        "role": "developer",
+                        "content": (
+                            f"{instructions}\n"
+                            "Return exactly one JSON object matching this schema. "
+                            "Use raw JSON without Markdown or surrounding text.\n"
+                            f"{schema}"
+                        ),
+                    },
+                    {"role": "user", "content": content},
+                ],
+                tool_choice="none",
+                **options,
+            )
+        return self.client.responses.parse(
+            model=self.settings.chat_deployment,
+            instructions=instructions,
+            input=content,
+            text_format=text_format,
+            **options,
+        )
+
+    def _parse_output[Output: BaseModel](self, result, text_format: type[Output]) -> Output:
         status = getattr(result, "status", None)
         if status == "incomplete":
             reason = getattr(getattr(result, "incomplete_details", None), "reason", None)
@@ -141,43 +186,15 @@ class ModelPlanner:
         if refused:
             logger.warning("Model response contained a refusal")
             raise EvidenceVerificationError("Model did not return a valid structured answer")
+        if self.settings.generation_mode == "foundry":
+            return text_format.model_validate_json(result.output_text)
+
         if result.output_parsed is None:
             logger.warning("Model response had no parsed answer")
             raise EvidenceVerificationError("Model did not return a valid structured answer")
         parsed = result.output_parsed
-        parsed = AnswerPlan.model_validate(
-            parsed.model_dump() if isinstance(parsed, AnswerPlan) else parsed
-        )
-        try:
-            plan = context.check(parsed)
-        except EvidenceVerificationError:
-            logger.warning("Model response failed supplied-evidence verification")
-            raise
-        if intent(question).contract and tokens(question) & {"example", "examples", "sample"}:
-            self._complete_request_example(plan, context, documents)
-        return plan
-
-    def _respond(self, *, instructions: str, body: dict, text_format: type[BaseModel]):
-        content = json.dumps(body, ensure_ascii=False, separators=(",", ":"))
-        options = {
-            "text_format": text_format,
-            "max_output_tokens": self.settings.max_output_tokens,
-            "store": False,
-        }
-        if self.settings.generation_mode == "foundry":
-            return self.client.responses.parse(
-                input=[
-                    {"role": "developer", "content": instructions},
-                    {"role": "user", "content": content},
-                ],
-                tool_choice="none",
-                **options,
-            )
-        return self.client.responses.parse(
-            model=self.settings.chat_deployment,
-            instructions=instructions,
-            input=content,
-            **options,
+        return text_format.model_validate(
+            parsed.model_dump() if isinstance(parsed, text_format) else parsed
         )
 
     def _complete_request_example(
@@ -209,21 +226,11 @@ class ModelPlanner:
                 },
                 text_format=RequestExample,
             )
+            example = self._parse_output(result, RequestExample)
         except (OpenAIError, AzureError, ValueError):
             logger.warning("Request example generation failed")
             return
-        if result.status != "completed" or any(
-            part.type == "refusal"
-            for item in result.output
-            if item.type == "message"
-            for part in item.content
-        ):
-            return
-        example = result.output_parsed
-        if (
-            isinstance(example, RequestExample)
-            and resolve_example(document.payload, example.example_json)[2] is True
-        ):
+        if resolve_example(document.payload, example.example_json)[2] is True:
             section.generated_example_json = example.example_json
 
     def close(self) -> None:
