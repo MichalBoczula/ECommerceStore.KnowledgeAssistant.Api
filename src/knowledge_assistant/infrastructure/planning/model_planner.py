@@ -135,10 +135,12 @@ class ModelPlanner:
         }
         if self.settings.generation_mode == "foundry":
             # The saved agent's endpoint rejects per-request text.format overrides.
+            # It requires an explicit type on each input message.
             schema = json.dumps(text_format.model_json_schema(), separators=(",", ":"))
             return self.client.responses.create(
                 input=[
                     {
+                        "type": "message",
                         "role": "developer",
                         "content": (
                             f"{instructions}\n"
@@ -147,7 +149,7 @@ class ModelPlanner:
                             f"{schema}"
                         ),
                     },
-                    {"role": "user", "content": content},
+                    {"type": "message", "role": "user", "content": content},
                 ],
                 tool_choice="none",
                 **options,
