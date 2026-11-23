@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from openai import OpenAI
 
 from knowledge_assistant.api.app import create_app
+from knowledge_assistant.application.planning import AnswerPlan
 from knowledge_assistant.application.services.evidence_planner import EvidencePlanner
 from knowledge_assistant.infrastructure.clients import openai_client
 from knowledge_assistant.infrastructure.configuration.settings import Settings
@@ -15,7 +16,8 @@ AGENT_NAME = "ecommerce-knowledge-assistant"
 QUESTION = "Explain mobile phone validation and give me the JSON contract to create a mobile phone"
 
 
-def test_api_uses_the_saved_agent_and_validates_its_structured_answer(demo, monkeypatch):
+@pytest.mark.parametrize("malformed", [False, True], ids=["valid-json", "malformed-json"])
+def test_api_validates_the_saved_agent_answer(demo, monkeypatch, malformed):
     plan = EvidencePlanner().plan(QUESTION, demo.corpus.documents)
     calls = []
     identity = object()
@@ -38,8 +40,10 @@ def test_api_uses_the_saved_agent_and_validates_its_structured_answer(demo, monk
         assert body["tool_choice"] == "none"
         assert body["max_output_tokens"] == 4096
         assert body["store"] is False
-        assert body["text"]["format"]["type"] == "json_schema"
+        assert "text" not in body
         assert body["input"][0]["role"] == "developer"
+        schema = body["input"][0]["content"].splitlines()[-1]
+        assert json.loads(schema) == AnswerPlan.model_json_schema()
         assert body["input"][1]["role"] == "user"
         evidence = json.loads(body["input"][1]["content"])["evidence"]
         assert any(row["kind"] == "api_contract" for row in evidence)
@@ -60,7 +64,11 @@ def test_api_uses_the_saved_agent_and_validates_its_structured_answer(demo, monk
                         "content": [
                             {
                                 "type": "output_text",
-                                "text": plan.model_dump_json(by_alias=True),
+                                "text": (
+                                    "private invalid output"
+                                    if malformed
+                                    else plan.model_dump_json(by_alias=True)
+                                ),
                                 "annotations": [],
                             }
                         ],
@@ -90,13 +98,19 @@ def test_api_uses_the_saved_agent_and_validates_its_structured_answer(demo, monk
             "/api/v1/query",
             json={"question": QUESTION, "service": "products", "snapshotId": "demo-v1"},
         )
+    assert len(calls) == 1
+    if malformed:
+        assert response.status_code == 503
+        assert response.json()["code"] == "answer_verification_failed"
+        assert "private invalid output" not in response.text
+        return
+
     assert response.status_code == 200
     answer = response.json()
     contract = next(s for s in answer["sections"] if s["type"] == "api_contract")
     assert (contract["method"], contract["path"]) == ("POST", "/mobile-phones")
     expected_sources = {doc.source.id for doc in demo.corpus.documents}
     assert set(contract["sourceIds"]) <= expected_sources
-    assert len(calls) == 1
 
 
 @pytest.mark.parametrize(
