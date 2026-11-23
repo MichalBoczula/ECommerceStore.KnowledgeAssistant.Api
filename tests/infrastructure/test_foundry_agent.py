@@ -99,6 +99,7 @@ def test_api_validates_the_saved_agent_answer(demo, monkeypatch, malformed):
             json={"question": QUESTION, "service": "products", "snapshotId": "demo-v1"},
         )
     assert len(calls) == 1
+    assert [message.get("type") for message in calls[0]["input"]] == ["message", "message"]
     if malformed:
         assert response.status_code == 503
         assert response.json()["code"] == "answer_verification_failed"
